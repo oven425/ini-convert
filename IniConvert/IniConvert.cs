@@ -156,7 +156,6 @@ namespace IniConvert
 
         }
 
-
         public string ReadIni(string section, string key, string filepath)
         {
             StringBuilder temp = new StringBuilder(255);
