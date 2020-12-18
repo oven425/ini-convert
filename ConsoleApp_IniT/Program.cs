@@ -12,16 +12,19 @@ namespace ConsoleApp_IniT
         {
             IniConvert.IniSerializer ini = new IniConvert.IniSerializer();
             Dictionary<string, object> dic = new Dictionary<string, object>();
+            dic.Add("char", char.MaxValue);
+            dic.Add("byte", byte.MaxValue);
+            dic.Add("short", short.MaxValue);
             dic.Add("string", "string");
             dic.Add("int", 10);
             dic.Add("CTest", new CTest());
-            //ini.Serialize(dic, "test.ini");
+            ini.Serialize(dic, "test.ini");
 
-            Dictionary<string, object> dic1 = new Dictionary<string, object>();
-            dic1.Add("string", "");
-            dic1.Add("int", 0);
-            dic1.Add("CTest", new CTest());
-            ini.Deserialize(dic1, "test.ini");
+            //Dictionary<string, object> dic1 = new Dictionary<string, object>();
+            //dic1.Add("string", "");
+            //dic1.Add("int", 0);
+            //dic1.Add("CTest", new CTest());
+            //ini.Deserialize(dic1, "test.ini");
         }
 
     }

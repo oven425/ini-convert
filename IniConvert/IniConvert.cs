@@ -38,8 +38,21 @@ namespace IniConvert
                     case TypeCode.UInt16:
                     case TypeCode.UInt32:
                     case TypeCode.UInt64:
+                    case TypeCode.Double:
+                    case TypeCode.Decimal:
+                    case TypeCode.SByte:
+                    case TypeCode.Byte:
+                    case TypeCode.Single:
+                    case TypeCode.Char:
+                    case TypeCode.Boolean:
                         {
                             WritePrivateProfileString(datas.ElementAt(i).Key, type.Name, datas.ElementAt(i).Value.ToString(), fileinfo.FullName);
+                        }
+                        break;
+                    case TypeCode.DateTime:
+                        {
+                            DateTime datetime = (DateTime)datas.ElementAt(i).Value;
+                            WritePrivateProfileString(datas.ElementAt(i).Key, type.Name, datetime.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.DateTimeFormatInfo.InvariantInfo), fileinfo.FullName);
                         }
                         break;
                     case TypeCode.Object:
@@ -151,10 +164,6 @@ namespace IniConvert
             }
         }
 
-        void Read()
-        {
-
-        }
 
         public string ReadIni(string section, string key, string filepath)
         {
