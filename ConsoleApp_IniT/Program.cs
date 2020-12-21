@@ -11,13 +11,14 @@ namespace ConsoleApp_IniT
         static void Main(string[] args)
         {
             IniConvert.IniSerializer ini = new IniConvert.IniSerializer();
+
             //Dictionary<string, object> dic = new Dictionary<string, object>();
             //dic.Add("char", char.MaxValue);
             //dic.Add("byte", byte.MaxValue);
             //dic.Add("short", short.MaxValue);
             //dic.Add("string", "string");
             //dic.Add("int", 10);
-            //dic.Add("CTest", new CTest());
+            //dic.Add("CTest", new CTest() { A = "AA", B = 101, Test1 = new CTest_1() { A1 = "AA11", B1 = 202 } });
             //ini.Serialize(dic, "test.ini");
 
             Dictionary<string, object> dic1 = new Dictionary<string, object>();
@@ -31,14 +32,14 @@ namespace ConsoleApp_IniT
 
     public class CTest
     {
-        public string A { set; get; } = "A";
-        public int B { set; get; } = 100;
+        public string A { set; get; }
+        public int B { set; get; }
         public CTest_1 Test1 { set; get; } = new CTest_1();
     }
 
     public class CTest_1
     {
-        public string A1 { set; get; } = "A1";
-        public int B1 { set; get; } = 100;
+        public string A1 { set; get; }
+        public int B1 { set; get; }
     }
 }
