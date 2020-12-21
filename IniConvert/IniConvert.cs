@@ -6,6 +6,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using System.Xml.Serialization;
+using System.Xml;
 
 namespace IniConvert
 {
@@ -28,10 +30,6 @@ namespace IniConvert
                 switch (Type.GetTypeCode(type))
                 {
                     case TypeCode.String:
-                        {
-                            WritePrivateProfileString(datas.ElementAt(i).Key, type.Name, datas.ElementAt(i).Value.ToString(), fileinfo.FullName);
-                        }
-                        break;
                     case TypeCode.Int16:
                     case TypeCode.Int32:
                     case TypeCode.Int64:
@@ -46,13 +44,7 @@ namespace IniConvert
                     case TypeCode.Char:
                     case TypeCode.Boolean:
                         {
-                            WritePrivateProfileString(datas.ElementAt(i).Key, type.Name, datas.ElementAt(i).Value.ToString(), fileinfo.FullName);
-                        }
-                        break;
-                    case TypeCode.DateTime:
-                        {
-                            DateTime datetime = (DateTime)datas.ElementAt(i).Value;
-                            WritePrivateProfileString(datas.ElementAt(i).Key, type.Name, datetime.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.DateTimeFormatInfo.InvariantInfo), fileinfo.FullName);
+                            this.WriteINI(datas.ElementAt(i).Key, datas.ElementAt(i).Value, type.Name, fileinfo.FullName);
                         }
                         break;
                     case TypeCode.Object:
@@ -61,11 +53,65 @@ namespace IniConvert
                             foreach (var pp in pps)
                             {
                                 object ooj = pp.GetValue(datas.ElementAt(i).Value);
-                                WritePrivateProfileString(datas.ElementAt(i).Key, pp.Name, pp.GetValue(datas.ElementAt(i).Value, null).ToString(), fileinfo.FullName);
+                                this.WriteINI(datas.ElementAt(i).Key, pp.GetValue(datas.ElementAt(i).Value), pp.Name, fileinfo.FullName);
+                                //WritePrivateProfileString(datas.ElementAt(i).Key, pp.Name, pp.GetValue(datas.ElementAt(i).Value, null).ToString(), fileinfo.FullName);
                             }
                         }
                         break;
                 }
+            }
+        }
+
+        void WriteINI(string key, object oo, string typename, string  filename)
+        {
+            Type type = oo.GetType();
+            TypeCode code = Type.GetTypeCode(type);
+            switch (Type.GetTypeCode(type))
+            {
+                case TypeCode.String:
+                case TypeCode.Int16:
+                case TypeCode.Int32:
+                case TypeCode.Int64:
+                case TypeCode.UInt16:
+                case TypeCode.UInt32:
+                case TypeCode.UInt64:
+                case TypeCode.Double:
+                case TypeCode.Decimal:
+                case TypeCode.SByte:
+                case TypeCode.Byte:
+                case TypeCode.Single:
+                case TypeCode.Char:
+                case TypeCode.Boolean:
+                    {
+                        WritePrivateProfileString(key, typename, oo.ToString(), filename);
+                    }
+                    break;
+                case TypeCode.DateTime:
+                    {
+                        DateTime datetime = (DateTime)oo;
+                        WritePrivateProfileString(key, typename, datetime.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.DateTimeFormatInfo.InvariantInfo), filename);
+                    }
+                    break;
+                case TypeCode.Object:
+                    {
+                        XmlWriterSettings settings = new XmlWriterSettings();
+                        settings.Indent = false;
+
+                        XmlSerializer xml = new XmlSerializer(type);
+                        
+                        using (MemoryStream mm = new MemoryStream())
+                        {
+                            using (var xmlWriter = XmlWriter.Create(mm, new XmlWriterSettings { Indent = false }))
+                            {
+                                xml.Serialize(xmlWriter, oo);
+                            }
+                            xml.Serialize(mm, oo);
+                            byte[] bb = mm.ToArray();
+                            string str = Encoding.UTF8.GetString(bb);
+                            WritePrivateProfileString(key, type.Name, str, filename);
+                        }
+                    }
+                    break;
             }
         }
 
