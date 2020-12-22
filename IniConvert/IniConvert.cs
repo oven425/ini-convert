@@ -103,7 +103,7 @@ namespace IniConvert
                             }
                             byte[] bb = mm.ToArray();
                             string str = Encoding.UTF8.GetString(bb);
-                            WritePrivateProfileString(key, type.Name, str, filename);
+                            WritePrivateProfileString(key, typename, str, filename);
                         }
                     }
                     break;
@@ -125,77 +125,14 @@ namespace IniConvert
                 switch (Type.GetTypeCode(type))
                 {
                     case TypeCode.String:
-                        {
-                            //string str = this.ReadIni(datas.ElementAt(i).Key, type.Name, fileinfo.FullName);
-                            //string str1 = datas.ElementAt(i).Value as string;
-                            datas[datas.ElementAt(i).Key] = this.ReadIni(datas.ElementAt(i).Key, datas.ElementAt(i).Value, type.Name, fileinfo.FullName);
-                        }
-                        break;
                     case TypeCode.Int16:
-                        {
-                            //string str = this.ReadIni(datas.ElementAt(i).Key, type.Name, fileinfo.FullName);
-                            //Int16 a = 0;
-                            //if (Int16.TryParse(str, out a) == true)
-                            //{
-                            //    datas[datas.ElementAt(i).Key] = a;
-                            //}
-
-                            datas[datas.ElementAt(i).Key] = this.ReadIni(datas.ElementAt(i).Key, datas.ElementAt(i).Value, type.Name, fileinfo.FullName);
-                        }
-                        break;
                     case TypeCode.Int32:
-                        {
-                            //string str = this.ReadIni(datas.ElementAt(i).Key, type.Name, fileinfo.FullName);
-                            //Int32 a = 0;
-                            //if(Int32.TryParse(str, out a) == true)
-                            //{
-                            //    datas[datas.ElementAt(i).Key] = a;
-                            //}
-                            datas[datas.ElementAt(i).Key] = this.ReadIni(datas.ElementAt(i).Key, datas.ElementAt(i).Value, type.Name, fileinfo.FullName);
-                        }
-                        break;
                     case TypeCode.Int64:
-                        {
-                            //string str = this.ReadIni(datas.ElementAt(i).Key, type.Name, fileinfo.FullName);
-                            //Int64 a = 0;
-                            //if (Int64.TryParse(str, out a) == true)
-                            //{
-                            //    datas[datas.ElementAt(i).Key] = a;
-                            //}
-                            datas[datas.ElementAt(i).Key] = this.ReadIni(datas.ElementAt(i).Key, datas.ElementAt(i).Value, type.Name, fileinfo.FullName);
-                        }
-                        break;
                     case TypeCode.UInt16:
-                        {
-                            //string str = this.ReadIni(datas.ElementAt(i).Key, type.Name, fileinfo.FullName);
-                            //UInt16 a = 0;
-                            //if (UInt16.TryParse(str, out a) == true)
-                            //{
-                            //    datas[datas.ElementAt(i).Key] = a;
-                            //}
-                            datas[datas.ElementAt(i).Key] = this.ReadIni(datas.ElementAt(i).Key, datas.ElementAt(i).Value, type.Name, fileinfo.FullName);
-                        }
-                        break;
                     case TypeCode.UInt32:
-                        {
-                            //string str = this.ReadIni(datas.ElementAt(i).Key, type.Name, fileinfo.FullName);
-                            //UInt32 a = 0;
-                            //if (UInt32.TryParse(str, out a) == true)
-                            //{
-                            //    datas[datas.ElementAt(i).Key] = a;
-                            //}
-                            datas[datas.ElementAt(i).Key] = this.ReadIni(datas.ElementAt(i).Key, datas.ElementAt(i).Value, type.Name, fileinfo.FullName);
-                        }
-                        break;
                     case TypeCode.UInt64:
                         {
-                            //string str = this.ReadIni(datas.ElementAt(i).Key, type.Name, fileinfo.FullName);
-                            //UInt64 a = 0;
-                            //if (UInt64.TryParse(str, out a) == true)
-                            //{
-                            //    datas[datas.ElementAt(i).Key] = a;
-                            //}
-                            datas[datas.ElementAt(i).Key] = this.ReadIni(datas.ElementAt(i).Key, datas.ElementAt(i).Value, type.Name, fileinfo.FullName);
+                            datas[datas.ElementAt(i).Key] = this.ReadIni(datas.ElementAt(i).Key, datas.ElementAt(i).Value, type.Name, fileinfo.FullName, code);
                         }
                         break;
                     case TypeCode.Object:
@@ -205,16 +142,16 @@ namespace IniConvert
                             {
                                 string sss = pp.Name;
                                 TypeCode code1 = Type.GetTypeCode(pp.PropertyType);
+                                
                                 if(code1 == TypeCode.Object)
                                 {
-                                    object oo1 = this.ReadIni(datas.ElementAt(i).Key, datas.ElementAt(i).Value, type.Name, fileinfo.FullName);
+                                    object oo1 = this.ReadIni(datas.ElementAt(i).Key, pp.GetValue(datas.ElementAt(i).Value), pp.Name, fileinfo.FullName, code1);
+                                    pp.SetValue(datas.ElementAt(i).Value, oo1);
                                 }
                                 else
                                 {
-                                    object oo1= this.ReadIni(datas.ElementAt(i).Key, datas.ElementAt(i).Value, type.Name, fileinfo.FullName);
+                                    object oo1= this.ReadIni(datas.ElementAt(i).Key, pp.GetValue(datas.ElementAt(i).Value, null), pp.Name, fileinfo.FullName, code1);
                                     pp.SetValue(datas.ElementAt(i).Value, oo1);
-                                    //object ooj = pp.GetValue(datas.ElementAt(i).Value);
-                                    //WritePrivateProfileString(datas.ElementAt(i).Key, pp.Name, pp.GetValue(datas.ElementAt(i).Value, null).ToString(), fileinfo.FullName);
                                 }
                                 
                             }
@@ -224,13 +161,12 @@ namespace IniConvert
             }
         }
 
-        public object ReadIni(string key, object oo, string typename, string filename)
+        public object ReadIni(string key, object oo, string typename, string filename, TypeCode typecode)
         {
             object dst = null;
             StringBuilder temp = new StringBuilder(255);
             GetPrivateProfileString(key, typename, "", temp, 255, filename);
-            TypeCode code = Type.GetTypeCode(oo.GetType());
-            switch (code)
+            switch (typecode)
             {
                 case TypeCode.String:
                     {
@@ -281,94 +217,19 @@ namespace IniConvert
                     break;
                 case TypeCode.Object:
                     {
-                        //XmlSerializer xml = new XmlSerializer(oo.GetType());
-                        //string ss = temp.ToString();
-                        //Encoding.UTF8.GetBytes(ss);
-                        //using (MemoryStream mm = new MemoryStream(Encoding.UTF8.GetBytes(ss)))
-                        //{
-                        //    dst = xml.Deserialize(mm);
-                        //}
+                        XmlSerializer xml = new XmlSerializer(oo.GetType());
+                        string ss = temp.ToString();
+                        ss = ss.TrimStart('?');
+
+                        Encoding.UTF8.GetBytes(ss);
+                        using (MemoryStream mm = new MemoryStream(Encoding.UTF8.GetBytes(ss)))
+                        {
+                            dst = xml.Deserialize(mm);
+                        }
                     }
                     break;
             }
             return dst;
-        }
-
-        public T ReadIni<T>(string key, object oo, string typename, string filename)
-        {
-            T hr = default(T);
-            TypeCode code = Type.GetTypeCode(typeof(T));
-            StringBuilder temp = new StringBuilder(255);
-            GetPrivateProfileString(key, typename, "", temp, 255, filename);
-            switch (code)
-            {
-                case TypeCode.String:
-                    {
-                        hr = (T)Convert.ChangeType(temp.ToString(), code);
-                    }
-                    break;
-                case TypeCode.Int16:
-                    {
-                        Int16 a = 0;
-                        if (Int16.TryParse(temp.ToString(), out a) == true)
-                        {
-                            hr = (T)Convert.ChangeType(a, code);
-                        }
-                    }
-                    break;
-                case TypeCode.Int32:
-                    {
-                        Int32 a = 0;
-                        if (Int32.TryParse(temp.ToString(), out a) == true)
-                        {
-                            hr = (T)Convert.ChangeType(a, code);
-                        }
-                    }
-                    break;
-                case TypeCode.Int64:
-                    {
-                        Int64 a = 0;
-                        if (Int64.TryParse(temp.ToString(), out a) == true)
-                        {
-                            hr = (T)Convert.ChangeType(a, code);
-                        }
-                    }
-                    break;
-                case TypeCode.UInt16:
-                    {
-                        UInt16 a = 0;
-                        if (UInt16.TryParse(temp.ToString(), out a) == true)
-                        {
-                            hr = (T)Convert.ChangeType(a, code);
-                        }
-                    }
-                    break;
-                case TypeCode.UInt32:
-                    {
-                        UInt32 a = 0;
-                        if (UInt32.TryParse(temp.ToString(), out a) == true)
-                        {
-                            hr = (T)Convert.ChangeType(a, code);
-                        }
-                    }
-                    break;
-                case TypeCode.UInt64:
-                    {
-                        UInt64 a = 0;
-                        if (UInt64.TryParse(temp.ToString(), out a) == true)
-                        {
-                            hr = (T)Convert.ChangeType(a, code);
-                        }
-                    }
-                    break;
-            }
-            return hr;
-        }
-        public string ReadIni(string section, string key, string filepath)
-        {
-            StringBuilder temp = new StringBuilder(255);
-            GetPrivateProfileString(section, key, "", temp, 255, filepath);
-            return temp.ToString();
         }
     }
 }

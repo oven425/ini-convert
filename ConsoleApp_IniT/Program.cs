@@ -24,7 +24,7 @@ namespace ConsoleApp_IniT
             Dictionary<string, object> dic1 = new Dictionary<string, object>();
             dic1.Add("string", "");
             dic1.Add("int", 0);
-            dic1.Add("CTest", new CTest());
+            dic1.Add("CTest", new CTest() { });
             ini.Deserialize(dic1, "test.ini");
         }
 
