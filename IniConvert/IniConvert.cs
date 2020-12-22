@@ -11,21 +11,27 @@ using System.Xml;
 
 namespace IniConvert
 {
+    public class NativeMethods
+    {
+        [DllImport("kernel32", CharSet = CharSet.Unicode)]
+        internal static extern Boolean WritePrivateProfileString(string section, string key, string val, string filePath);
+        [DllImport("kernel32", CharSet = CharSet.Unicode)]
+        internal static extern int GetPrivateProfileString(string section, string key, string def, StringBuilder retVal, int size, string filePath);
+    }
     public class IniSerializer
     {
-        [DllImport("kernel32")]
-        private static extern long WritePrivateProfileString(string section, string key, string val, string filePath);
-        [DllImport("kernel32")]
-        private static extern int GetPrivateProfileString(string section, string key, string def, StringBuilder retVal, int size, string filePath);
-
-        public void Serialize(Dictionary<string, object> datas, string filename)
+        public void Serialize(string section, Dictionary<string, object> datas, string filename)
         {
             FileInfo fileinfo = new FileInfo(filename);
-            
             for (int i=0; i< datas.Count; i++)
             {
-                Type type = datas.ElementAt(i).Value.GetType();
                 object oo = datas.ElementAt(i).Value;
+                if(oo==null)
+                {
+                    continue;
+                }
+                Type type = oo.GetType();
+                
                 TypeCode code = Type.GetTypeCode(type);
                 switch (Type.GetTypeCode(type))
                 {
@@ -43,19 +49,31 @@ namespace IniConvert
                     case TypeCode.Single:
                     case TypeCode.Char:
                     case TypeCode.Boolean:
+                    case TypeCode.DateTime:
                         {
-                            this.WriteINI(datas.ElementAt(i).Key, datas.ElementAt(i).Value, type.Name, fileinfo.FullName);
+                            this.WriteINI(section,datas.ElementAt(i).Value, datas.ElementAt(i).Key, fileinfo.FullName);
                         }
                         break;
                     case TypeCode.Object:
                         {
-                            PropertyInfo[] pps = type.GetProperties();
-                            foreach (var pp in pps)
+                            if(type.IsGenericType == true)
                             {
-                                object ooj = pp.GetValue(datas.ElementAt(i).Value);
-                                this.WriteINI(datas.ElementAt(i).Key, pp.GetValue(datas.ElementAt(i).Value), pp.Name, fileinfo.FullName);
-                                //WritePrivateProfileString(datas.ElementAt(i).Key, pp.Name, pp.GetValue(datas.ElementAt(i).Value, null).ToString(), fileinfo.FullName);
+                                this.WriteINI(section, datas.ElementAt(i).Value, datas.ElementAt(i).Key, fileinfo.FullName);
                             }
+                            else if(type.IsArray == true)
+                            {
+                                this.WriteINI(section, datas.ElementAt(i).Value, datas.ElementAt(i).Key, fileinfo.FullName);
+                            }
+                            else
+                            {
+                                PropertyInfo[] pps = type.GetProperties();
+                                foreach (var pp in pps)
+                                {
+                                    object ooj = pp.GetValue(datas.ElementAt(i).Value);
+                                    this.WriteINI(datas.ElementAt(i).Key, pp.GetValue(datas.ElementAt(i).Value), pp.Name, fileinfo.FullName);
+                                }
+                            }
+                            
                         }
                         break;
                 }
@@ -83,13 +101,13 @@ namespace IniConvert
                 case TypeCode.Char:
                 case TypeCode.Boolean:
                     {
-                        WritePrivateProfileString(key, typename, oo.ToString(), filename);
+                        NativeMethods.WritePrivateProfileString(key, typename, oo.ToString(), filename);
                     }
                     break;
                 case TypeCode.DateTime:
                     {
                         DateTime datetime = (DateTime)oo;
-                        WritePrivateProfileString(key, typename, datetime.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.DateTimeFormatInfo.InvariantInfo), filename);
+                        NativeMethods.WritePrivateProfileString(key, typename, datetime.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.DateTimeFormatInfo.InvariantInfo), filename);
                     }
                     break;
                 case TypeCode.Object:
@@ -97,20 +115,28 @@ namespace IniConvert
                         XmlSerializer xml = new XmlSerializer(type);
                         using (MemoryStream mm = new MemoryStream())
                         {
-                            using (var xmlWriter = XmlWriter.Create(mm, new XmlWriterSettings { Indent = false }))
+                            using (StreamWriter sw = new StreamWriter(mm, Encoding.UTF8))
                             {
-                                xml.Serialize(xmlWriter, oo);
+                                using (var xmlWriter = XmlWriter.Create(sw, new XmlWriterSettings { Indent = false, Encoding = Encoding.UTF8 }))
+                                {
+                                    xml.Serialize(xmlWriter, oo);
+                                }
+                                byte[] bb = mm.ToArray();
+
+                                //because utf-8 begin is 0xef 0xbb 0xbf
+                                //remove 3 byte, WritePrivateProfileStringW is no ? at being
+                                string str = Encoding.UTF8.GetString(bb, 3, bb.Length-3);
+
+                                System.Diagnostics.Trace.WriteLine(str);
+                                NativeMethods.WritePrivateProfileString(key, typename, str, filename);
                             }
-                            byte[] bb = mm.ToArray();
-                            string str = Encoding.UTF8.GetString(bb);
-                            WritePrivateProfileString(key, typename, str, filename);
                         }
                     }
                     break;
             }
         }
 
-        public void Deserialize(Dictionary<string, object> datas, string filename)
+        public void Deserialize(string section, Dictionary<string, object> datas, string filename)
         {
             FileInfo fileinfo = new FileInfo(filename);
             for (int i = 0; i < datas.Count; i++)
@@ -124,36 +150,55 @@ namespace IniConvert
                 TypeCode code = Type.GetTypeCode(type);
                 switch (Type.GetTypeCode(type))
                 {
-                    case TypeCode.String:
+                    case TypeCode.Boolean:
+                    case TypeCode.Byte:
+                    case TypeCode.Char:
+                    case TypeCode.DateTime:
+                    case TypeCode.Decimal:
+                    case TypeCode.Double:
                     case TypeCode.Int16:
                     case TypeCode.Int32:
                     case TypeCode.Int64:
+                    case TypeCode.SByte:
+                    case TypeCode.Single:
+                    case TypeCode.String:
                     case TypeCode.UInt16:
                     case TypeCode.UInt32:
                     case TypeCode.UInt64:
                         {
-                            datas[datas.ElementAt(i).Key] = this.ReadIni(datas.ElementAt(i).Key, datas.ElementAt(i).Value, type.Name, fileinfo.FullName, code);
+                            datas[datas.ElementAt(i).Key] = this.ReadIni(section, datas.ElementAt(i).Value, datas.ElementAt(i).Key, fileinfo.FullName, code);
                         }
                         break;
                     case TypeCode.Object:
                         {
-                            PropertyInfo[] pps = type.GetProperties();
-                            foreach (var pp in pps)
+                            if(type.IsArray == true)
                             {
-                                string sss = pp.Name;
-                                TypeCode code1 = Type.GetTypeCode(pp.PropertyType);
-                                
-                                if(code1 == TypeCode.Object)
+                                datas[datas.ElementAt(i).Key] = this.ReadIni(section, datas.ElementAt(i).Value, datas.ElementAt(i).Key, fileinfo.FullName, code);
+                            }
+                            else if(type.IsClass == true&& type.IsGenericType == true)
+                            {
+                                datas[datas.ElementAt(i).Key] = this.ReadIni(section, datas.ElementAt(i).Value, datas.ElementAt(i).Key, fileinfo.FullName, code);
+                            }
+                            else
+                            {
+                                PropertyInfo[] pps = type.GetProperties();
+                                foreach (var pp in pps)
                                 {
-                                    object oo1 = this.ReadIni(datas.ElementAt(i).Key, pp.GetValue(datas.ElementAt(i).Value), pp.Name, fileinfo.FullName, code1);
-                                    pp.SetValue(datas.ElementAt(i).Value, oo1);
+                                    string sss = pp.Name;
+                                    TypeCode code1 = Type.GetTypeCode(pp.PropertyType);
+
+                                    if (code1 == TypeCode.Object)
+                                    {
+                                        object oo1 = this.ReadIni(datas.ElementAt(i).Key, pp.GetValue(datas.ElementAt(i).Value), pp.Name, fileinfo.FullName, code1);
+                                        pp.SetValue(datas.ElementAt(i).Value, oo1);
+                                    }
+                                    else
+                                    {
+                                        object oo1 = this.ReadIni(datas.ElementAt(i).Key, pp.GetValue(datas.ElementAt(i).Value, null), pp.Name, fileinfo.FullName, code1);
+                                        pp.SetValue(datas.ElementAt(i).Value, oo1);
+                                    }
+
                                 }
-                                else
-                                {
-                                    object oo1= this.ReadIni(datas.ElementAt(i).Key, pp.GetValue(datas.ElementAt(i).Value, null), pp.Name, fileinfo.FullName, code1);
-                                    pp.SetValue(datas.ElementAt(i).Value, oo1);
-                                }
-                                
                             }
                         }
                         break;
@@ -165,7 +210,7 @@ namespace IniConvert
         {
             object dst = null;
             StringBuilder temp = new StringBuilder(255);
-            GetPrivateProfileString(key, typename, "", temp, 255, filename);
+            NativeMethods.GetPrivateProfileString(key, typename, "", temp, 255, filename);
             switch (typecode)
             {
                 case TypeCode.String:
@@ -215,12 +260,17 @@ namespace IniConvert
                         dst = a;
                     }
                     break;
+                case TypeCode.DateTime:
+                    {
+                        DateTime a = DateTime.MinValue;
+                        DateTime.TryParse(temp.ToString(), out a);
+                        dst = a;
+                    }
+                    break;
                 case TypeCode.Object:
                     {
                         XmlSerializer xml = new XmlSerializer(oo.GetType());
                         string ss = temp.ToString();
-                        ss = ss.TrimStart('?');
-
                         Encoding.UTF8.GetBytes(ss);
                         using (MemoryStream mm = new MemoryStream(Encoding.UTF8.GetBytes(ss)))
                         {
@@ -231,5 +281,10 @@ namespace IniConvert
             }
             return dst;
         }
+    }
+
+    public class CIniIgnore
+    {
+
     }
 }
