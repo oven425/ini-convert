@@ -4,12 +4,11 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using System.Xml.Serialization;
 using System.Xml;
 
-namespace IniConvert
+namespace QSoft
 {
     public class NativeMethods
     {
@@ -77,7 +76,7 @@ namespace IniConvert
                                 PropertyInfo[] pps = type.GetProperties();
                                 foreach (var pp in pps)
                                 {
-                                    this.WriteINI(datas.ElementAt(i).Key, pp.Name, pp.GetValue(datas.ElementAt(i).Value), fileinfo.FullName);
+                                    this.WriteINI(datas.ElementAt(i).Key, pp.Name, pp.GetValue(datas.ElementAt(i).Value, null), fileinfo.FullName);
                                 }
                             }
                             
@@ -127,7 +126,7 @@ namespace IniConvert
                         {
                             if (oo is TimeSpan)
                             {
-                                NativeMethods.WritePrivateProfileString(section, key, ((TimeSpan)oo).ToString("c"), filename);
+                                NativeMethods.WritePrivateProfileString(section, key, ((TimeSpan)oo).ToString(), filename);
                             }
                             else
                             {
@@ -222,13 +221,14 @@ namespace IniConvert
 
                                     if (code1 == TypeCode.Object)
                                     {
-                                        object oo1 = this.ReadIni(datas.ElementAt(i).Key, pp.Name, pp.GetValue(datas.ElementAt(i).Value), fileinfo.FullName, code1);
-                                        pp.SetValue(datas.ElementAt(i).Value, oo1);
+                                        
+                                        object oo1 = this.ReadIni(datas.ElementAt(i).Key, pp.Name, pp.GetValue(datas.ElementAt(i).Value, null), fileinfo.FullName, code1);
+                                        pp.SetValue(datas.ElementAt(i).Value, oo1, null);
                                     }
                                     else
                                     {
                                         object oo1 = this.ReadIni(datas.ElementAt(i).Key, pp.Name, pp.GetValue(datas.ElementAt(i).Value, null), fileinfo.FullName, code1);
-                                        pp.SetValue(datas.ElementAt(i).Value, oo1);
+                                        pp.SetValue(datas.ElementAt(i).Value, oo1, null);
                                     }
 
                                 }
@@ -241,7 +241,6 @@ namespace IniConvert
 
         public object ReadIni(string section, string key, object oo, string filename, TypeCode typecode)
         {
-            
             object dst = null;
             if (oo == null)
             {
@@ -364,15 +363,17 @@ namespace IniConvert
                         }
                         else
                         {
-                            XmlSerializer xml = new XmlSerializer(oo.GetType());
                             string ss = temp.ToString();
-                            Encoding.UTF8.GetBytes(ss);
-                            using (MemoryStream mm = new MemoryStream(Encoding.UTF8.GetBytes(ss)))
+                            if (string.IsNullOrEmpty(ss) == false && ss.Length>0)
                             {
-                                dst = xml.Deserialize(mm);
+                                XmlSerializer xml = new XmlSerializer(oo.GetType());
+                                Encoding.UTF8.GetBytes(ss);
+                                using (MemoryStream mm = new MemoryStream(Encoding.UTF8.GetBytes(ss)))
+                                {
+                                    dst = xml.Deserialize(mm);
+                                }
                             }
                         }
-                        
                     }
                     break;
             }
@@ -388,25 +389,25 @@ namespace IniConvert
             {
                 return;
             }
-            IniSection defaultsection = type.GetCustomAttributes<IniSection>().FirstOrDefault();
-            if(defaultsection == null || string.IsNullOrEmpty(defaultsection.DefaultSection)==true)
+            IniSection defaultsection = type.GetCustomAttributes(typeof(IniSection), false).FirstOrDefault() as IniSection;
+            if (defaultsection == null || string.IsNullOrEmpty(defaultsection.DefaultSection) == true)
             {
                 return;
             }
-            PropertyInfo[] pps = type.GetProperties();
-            foreach(PropertyInfo pp in pps)
+            var pps = type.GetProperties().Where(x=>x.CanRead==true);
+            foreach (PropertyInfo pp in pps)
             {
-                var attribe = pp.GetCustomAttributes<IniSectionKey>().FirstOrDefault();
+                var attribe = pp.GetCustomAttributes(typeof(IniSectionKey), false).FirstOrDefault() as IniSectionKey;
                 string section = defaultsection.DefaultSection;
                 string key = pp.Name;
                 bool ignore = false;
                 if (attribe != null)
                 {
-                    if(string.IsNullOrWhiteSpace(attribe.Section) == false)
+                    if (string.IsNullOrEmpty(attribe.Section) == false&& attribe.Section.Length>0)
                     {
                         section = attribe.Section;
                     }
-                    if (string.IsNullOrWhiteSpace(attribe.Key) == false)
+                    if (string.IsNullOrEmpty(attribe.Key) == false && attribe.Key.Length > 0)
                     {
                         key = attribe.Key;
                     }
@@ -428,7 +429,7 @@ namespace IniConvert
             {
                 return;
             }
-            IniSection defaultsection = type.GetCustomAttributes<IniSection>().FirstOrDefault();
+            IniSection defaultsection = type.GetCustomAttributes(typeof(IniSection), false).FirstOrDefault() as IniSection;
             if (defaultsection == null || string.IsNullOrEmpty(defaultsection.DefaultSection) == true)
             {
                 return;
@@ -436,17 +437,17 @@ namespace IniConvert
             PropertyInfo[] pps = type.GetProperties();
             foreach (PropertyInfo pp in pps)
             {
-                var attribe = pp.GetCustomAttributes<IniSectionKey>().FirstOrDefault();
+                var attribe = pp.GetCustomAttributes(typeof(IniSectionKey), false).FirstOrDefault() as IniSectionKey;
                 string section = type.Name;
                 string key = pp.Name;
                 bool ignore = false;
                 if (attribe != null)
                 {
-                    if (string.IsNullOrWhiteSpace(attribe.Section) == false)
+                    if (string.IsNullOrEmpty(attribe.Section) == false && attribe.Section.Length>0)
                     {
                         section = attribe.Section;
                     }
-                    if (string.IsNullOrWhiteSpace(attribe.Key) == false)
+                    if (string.IsNullOrEmpty(attribe.Key) == false&& attribe.Key.Length>0)
                     {
                         key = attribe.Key;
                     }
@@ -455,7 +456,7 @@ namespace IniConvert
                 if (ignore == false)
                 {
                     object dst = this.ReadIni(section, key, pp.GetValue(obj, null), file.FullName, Type.GetTypeCode(pp.PropertyType));
-                    pp.SetValue(obj, dst);
+                    pp.SetValue(obj, dst, null);
                 }
             }
         }
