@@ -85,26 +85,26 @@ namespace ConsoleApp_IniT
             ini.Deserialize("test", dic1, "test.ini");
             
 
-            CSetting inifile = new CSetting();
-            inifile.MaxCount = 1000;
-            inifile.MinCount = 1;
-            inifile.Name = "account";
-            inifile.Password = "password";
-            inifile.Time = new TimeSpan(10, 9, 9, 7);
-            inifile.Test = new CTest() { A = "A1", B = 1, Test1 = new CTest_1() { A1 = "A11", B1 = 100 } };
-            ini.Serialize(inifile, "test1.ini");
+            //CSetting inifile = new CSetting();
+            //inifile.MaxCount = 1000;
+            //inifile.MinCount = 1;
+            //inifile.Name = "account";
+            //inifile.Password = "password";
+            //inifile.Time = new TimeSpan(10, 9, 9, 7);
+            //inifile.Test = new CTest() { A = "A1", B = 1, Test1 = new CTest_1() { A1 = "A11", B1 = 100 } };
+            //ini.Serialize(inifile, "test1.ini");
 
-            ini.Deserialize(inifile, "test1.ini");
+            CSetting inifile1 = new CSetting();
+            ini.Deserialize(inifile1, "test1.ini");
         }
 
     }
 
-    [QSoft.Ini.IniSection(DefaultSection = "General")]
+    //[QSoft.Ini.IniSection(DefaultSection = "General")]
     public class CSetting
     {
-        string m_Name;
         [QSoft.Ini.IniSectionKey(Section = "Auth", Key = "Account")]
-        public string Name { set { this.m_Name = value; }  }
+        public string Name { set; get; }
 
         [QSoft.Ini.IniSectionKey(Section = "Auth", Key = "Password")]
         public string Password { set; get; }

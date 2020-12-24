@@ -352,7 +352,7 @@ namespace QSoft.Ini
                         else
                         {
                             string ss = temp.ToString();
-                            if (string.IsNullOrEmpty(ss) == false && ss.Length>0)
+                            if (string.IsNullOrEmpty(ss) == false && ss.Trim().Length > 0)
                             {
                                 XmlSerializer xml = new XmlSerializer(type);
                                 Encoding.UTF8.GetBytes(ss);
@@ -377,25 +377,28 @@ namespace QSoft.Ini
             {
                 return;
             }
+            
             IniSection defaultsection = type.GetCustomAttributes(typeof(IniSection), false).FirstOrDefault() as IniSection;
-            if (defaultsection == null || string.IsNullOrEmpty(defaultsection.DefaultSection) == true)
-            {
-                return;
-            }
+            
+
             var pps = type.GetProperties().Where(x => x.CanWrite && x.CanRead);
             foreach (PropertyInfo pp in pps)
             {
                 var attribe = pp.GetCustomAttributes(typeof(IniSectionKey), false).FirstOrDefault() as IniSectionKey;
-                string section = defaultsection.DefaultSection;
+                string section = type.Name;
+                if (defaultsection != null && string.IsNullOrEmpty(defaultsection.DefaultSection) == true && defaultsection.DefaultSection.Trim().Length > 0)
+                {
+                    section = defaultsection.DefaultSection;
+                }
                 string key = pp.Name;
                 bool ignore = false;
                 if (attribe != null)
                 {
-                    if (string.IsNullOrEmpty(attribe.Section) == false&& attribe.Section.Length>0)
+                    if (string.IsNullOrEmpty(attribe.Section) == false&& attribe.Section.Trim().Length > 0)
                     {
                         section = attribe.Section;
                     }
-                    if (string.IsNullOrEmpty(attribe.Key) == false && attribe.Key.Length > 0)
+                    if (string.IsNullOrEmpty(attribe.Key) == false && attribe.Key.Trim().Length > 0)
                     {
                         key = attribe.Key;
                     }
@@ -418,24 +421,25 @@ namespace QSoft.Ini
                 return;
             }
             IniSection defaultsection = type.GetCustomAttributes(typeof(IniSection), false).FirstOrDefault() as IniSection;
-            if (defaultsection == null || string.IsNullOrEmpty(defaultsection.DefaultSection) == true)
-            {
-                return;
-            }
+            
             var pps = type.GetProperties().Where(x=>x.CanWrite&&x.CanRead);
             foreach (PropertyInfo pp in pps)
             {
                 var attribe = pp.GetCustomAttributes(typeof(IniSectionKey), false).FirstOrDefault() as IniSectionKey;
-                string section = defaultsection.DefaultSection;
+                string section = type.Name;
+                if (defaultsection != null && string.IsNullOrEmpty(defaultsection.DefaultSection) == true && defaultsection.DefaultSection.Trim().Length > 0)
+                {
+                    section = defaultsection.DefaultSection;
+                }
                 string key = pp.Name;
                 bool ignore = false;
                 if (attribe != null)
                 {
-                    if (string.IsNullOrEmpty(attribe.Section) == false && attribe.Section.Length>0)
+                    if (string.IsNullOrEmpty(attribe.Section) == false && attribe.Section.Trim().Length>0)
                     {
                         section = attribe.Section;
                     }
-                    if (string.IsNullOrEmpty(attribe.Key) == false&& attribe.Key.Length>0)
+                    if (string.IsNullOrEmpty(attribe.Key) == false&& attribe.Key.Trim().Length>0)
                     {
                         key = attribe.Key;
                     }
@@ -444,10 +448,6 @@ namespace QSoft.Ini
                 if (ignore == false)
                 {
                     object src = pp.GetValue(obj, null);
-                    //if(src == null)
-                    //{
-                    //    src = Activator.CreateInstance(pp.PropertyType);
-                    //}
                     object dst = this.ReadIni(section, key, src, file.FullName, pp.PropertyType, Type.GetTypeCode(pp.PropertyType));
                     pp.SetValue(obj, dst, null);
                 }
