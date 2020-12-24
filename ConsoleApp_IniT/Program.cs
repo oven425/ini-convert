@@ -1,10 +1,5 @@
-﻿using QSoft;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ConsoleApp_IniT
 {
@@ -12,41 +7,41 @@ namespace ConsoleApp_IniT
     {
         static void Main(string[] args)
         {
-            QSoft.IniSerializer ini = new QSoft.IniSerializer();
+            QSoft.Ini.IniSerializer ini = new QSoft.Ini.IniSerializer();
             Dictionary<string, object> dic = new Dictionary<string, object>();
-            dic.Add("TimeSpan", new TimeSpan(1,2,3,4));
+            dic.Add("TimeSpan", new TimeSpan(1, 2, 3, 4));
             dic.Add("bool_true", bool.TrueString);
-            //dic.Add("bool_false", bool.FalseString);
-            //dic.Add("decimal_max", decimal.MaxValue);
-            //dic.Add("decimal_min", decimal.MinValue);
+            dic.Add("bool_false", bool.FalseString);
+            dic.Add("decimal_max", decimal.MaxValue);
+            dic.Add("decimal_min", decimal.MinValue);
             dic.Add("Now", DateTime.Now);
-            //dic.Add("double_max", double.MaxValue);
-            //dic.Add("double_min", double.MinValue);
-            //dic.Add("Single_max", Single.MaxValue);
-            //dic.Add("Single_min", Single.MinValue);
-            //dic.Add("SByte_max", SByte.MaxValue);
-            //dic.Add("SByte_min", SByte.MinValue);
-            //dic.Add("char_max", char.MaxValue);
-            //dic.Add("char_min", char.MinValue);
-            //dic.Add("short_max", short.MaxValue);
-            //dic.Add("short_min", short.MinValue);
-            //dic.Add("int_max", int.MaxValue);
-            //dic.Add("int_min", int.MinValue);
-            //dic.Add("long_max", long.MaxValue);
-            //dic.Add("long_min", long.MinValue);
-            //dic.Add("byte_max", byte.MaxValue);
-            //dic.Add("byte_min", byte.MinValue);
-            //dic.Add("ushort_max", ushort.MaxValue);
-            //dic.Add("ushort_min", ushort.MinValue);
-            //dic.Add("uint_max", uint.MaxValue);
-            //dic.Add("uint_min", uint.MinValue);
-            //dic.Add("ulong_max", ulong.MaxValue);
-            //dic.Add("ulong_min", ulong.MinValue);
-            //dic.Add("string", "ini serialize");
+            dic.Add("double_max", double.MaxValue);
+            dic.Add("double_min", double.MinValue);
+            dic.Add("Single_max", Single.MaxValue);
+            dic.Add("Single_min", Single.MinValue);
+            dic.Add("SByte_max", SByte.MaxValue);
+            dic.Add("SByte_min", SByte.MinValue);
+            dic.Add("char_max", char.MaxValue);
+            dic.Add("char_min", char.MinValue);
+            dic.Add("short_max", short.MaxValue);
+            dic.Add("short_min", short.MinValue);
+            dic.Add("int_max", int.MaxValue);
+            dic.Add("int_min", int.MinValue);
+            dic.Add("long_max", long.MaxValue);
+            dic.Add("long_min", long.MinValue);
+            dic.Add("byte_max", byte.MaxValue);
+            dic.Add("byte_min", byte.MinValue);
+            dic.Add("ushort_max", ushort.MaxValue);
+            dic.Add("ushort_min", ushort.MinValue);
+            dic.Add("uint_max", uint.MaxValue);
+            dic.Add("uint_min", uint.MinValue);
+            dic.Add("ulong_max", ulong.MaxValue);
+            dic.Add("ulong_min", ulong.MinValue);
+            dic.Add("string", "ini serialize");
 
-            //dic.Add("CTest", new CTest() { A = "答案A", B = 101, Test1 = new CTest_1() { A1 = "答案B", B1 = 202 } });
-            //dic.Add("Array", new int[] { 1, 2, 3 });
-            //dic.Add("List", new List<int>() { 1, 2, 3 });
+            dic.Add("CTest", new CTest() { A = "答案A", B = 101, Test1 = new CTest_1() { A1 = "答案B", B1 = 202 } });
+            dic.Add("Array", new int[] { 1, 2, 3 });
+            dic.Add("List", new List<int>() { 1, 2, 3 });
             ini.Serialize("test", dic, "test.ini");
 
 
@@ -86,32 +81,32 @@ namespace ConsoleApp_IniT
             ini.Deserialize("test", dic1, "test.ini");
 
 
-            CSetting inifile = new CSetting();
-            inifile.MaxCount = 1000;
-            inifile.MinCount = 1;
-            inifile.Name = "account";
-            inifile.Password = "password";
-            inifile.Test = new CTest() { A = "A1", B = 1, Test1 = new CTest_1() { A1 = "A11", B1 = 100 } };
-            ini.Serialize(inifile, "test1.ini");
+            //CSetting inifile = new CSetting();
+            //inifile.MaxCount = 1000;
+            //inifile.MinCount = 1;
+            //inifile.Name = "account";
+            //inifile.Password = "password";
+            //inifile.Test = new CTest() { A = "A1", B = 1, Test1 = new CTest_1() { A1 = "A11", B1 = 100 } };
+            //ini.Serialize(inifile, "test1.ini");
 
-            //ini.Deserialize(inifile, "test1.ini");
+            ////ini.Deserialize(inifile, "test1.ini");
         }
 
     }
 
-    [IniSection(DefaultSection = "General")]
+    [QSoft.Ini.IniSection(DefaultSection = "General")]
     public class CSetting
     {
-        [IniSectionKey(Section = "Auth", Key = "Account")]
+        [QSoft.Ini.IniSectionKey(Section = "Auth", Key = "Account")]
         public string Name { set; get; }
 
-        [IniSectionKey(Section = "Auth", Key = "Password")]
+        [QSoft.Ini.IniSectionKey(Section = "Auth", Key = "Password")]
         public string Password { set; get; }
 
-        [IniSectionKey(Ignore = true)]
+        [QSoft.Ini.IniSectionKey(Ignore = true)]
         public int MaxCount { set; get; } = 100;
 
-        [IniSectionKey(Key = "MinCount")]
+        [QSoft.Ini.IniSectionKey(Key = "MinCount")]
         public int MinCount { set; get; } = 10;
 
         public CTest Test { set; get; }
