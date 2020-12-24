@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp_IniT", "ConsoleA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSoft.Ini", "Ini-Serializer\QSoft.Ini.csproj", "{7159CEAA-5BD9-4981-9ACF-643CBA88268C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp_UngetT", "ConsoleApp_UngetT\ConsoleApp_UngetT.csproj", "{88CD3BEA-EE35-44A4-8D71-2488195942CD}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,14 +31,6 @@ Global
 		{7159CEAA-5BD9-4981-9ACF-643CBA88268C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7159CEAA-5BD9-4981-9ACF-643CBA88268C}.Release|x64.ActiveCfg = Release|Any CPU
 		{7159CEAA-5BD9-4981-9ACF-643CBA88268C}.Release|x64.Build.0 = Release|Any CPU
-		{88CD3BEA-EE35-44A4-8D71-2488195942CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{88CD3BEA-EE35-44A4-8D71-2488195942CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{88CD3BEA-EE35-44A4-8D71-2488195942CD}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{88CD3BEA-EE35-44A4-8D71-2488195942CD}.Debug|x64.Build.0 = Debug|Any CPU
-		{88CD3BEA-EE35-44A4-8D71-2488195942CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{88CD3BEA-EE35-44A4-8D71-2488195942CD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{88CD3BEA-EE35-44A4-8D71-2488195942CD}.Release|x64.ActiveCfg = Release|Any CPU
-		{88CD3BEA-EE35-44A4-8D71-2488195942CD}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -189,7 +189,7 @@ namespace QSoft.Ini
                     case TypeCode.UInt32:
                     case TypeCode.UInt64:
                         {
-                            datas[datas.ElementAt(i).Key] = this.ReadIni(section, datas.ElementAt(i).Key, datas.ElementAt(i).Value, fileinfo.FullName, code);
+                            datas[datas.ElementAt(i).Key] = this.ReadIni(section, datas.ElementAt(i).Key, datas.ElementAt(i).Value, fileinfo.FullName, type, code);
                         }
                         break;
                     case TypeCode.Object:
@@ -217,7 +217,7 @@ namespace QSoft.Ini
 
                             if (type.BaseType != null)
                             {
-                                datas[datas.ElementAt(i).Key] = this.ReadIni(section, datas.ElementAt(i).Key, datas.ElementAt(i).Value, fileinfo.FullName, code);
+                                datas[datas.ElementAt(i).Key] = this.ReadIni(section, datas.ElementAt(i).Key, datas.ElementAt(i).Value, fileinfo.FullName, type, code);
                             }
                         }
                         break;
@@ -225,14 +225,11 @@ namespace QSoft.Ini
             }
         }
 
-        public object ReadIni(string section, string key, object oo, string filename, TypeCode typecode)
+        public object ReadIni(string section, string key, object oo, string filename, Type type, TypeCode typecode)
         {
             object dst = null;
-            if (oo == null)
-            {
-                return dst;
-            }
-            StringBuilder temp = new StringBuilder(255);
+            
+            StringBuilder temp = new StringBuilder(1024);
             
             NativeMethods.GetPrivateProfileString(section, key, "", temp, 255, filename);
             if(temp.Length <=0)
@@ -357,7 +354,7 @@ namespace QSoft.Ini
                             string ss = temp.ToString();
                             if (string.IsNullOrEmpty(ss) == false && ss.Length>0)
                             {
-                                XmlSerializer xml = new XmlSerializer(oo.GetType());
+                                XmlSerializer xml = new XmlSerializer(type);
                                 Encoding.UTF8.GetBytes(ss);
                                 using (MemoryStream mm = new MemoryStream(Encoding.UTF8.GetBytes(ss)))
                                 {
@@ -385,7 +382,7 @@ namespace QSoft.Ini
             {
                 return;
             }
-            var pps = type.GetProperties().Where(x=>x.CanRead==true);
+            var pps = type.GetProperties().Where(x => x.CanWrite && x.CanRead);
             foreach (PropertyInfo pp in pps)
             {
                 var attribe = pp.GetCustomAttributes(typeof(IniSectionKey), false).FirstOrDefault() as IniSectionKey;
@@ -425,11 +422,11 @@ namespace QSoft.Ini
             {
                 return;
             }
-            PropertyInfo[] pps = type.GetProperties();
+            var pps = type.GetProperties().Where(x=>x.CanWrite&&x.CanRead);
             foreach (PropertyInfo pp in pps)
             {
                 var attribe = pp.GetCustomAttributes(typeof(IniSectionKey), false).FirstOrDefault() as IniSectionKey;
-                string section = type.Name;
+                string section = defaultsection.DefaultSection;
                 string key = pp.Name;
                 bool ignore = false;
                 if (attribe != null)
@@ -446,7 +443,12 @@ namespace QSoft.Ini
                 }
                 if (ignore == false)
                 {
-                    object dst = this.ReadIni(section, key, pp.GetValue(obj, null), file.FullName, Type.GetTypeCode(pp.PropertyType));
+                    object src = pp.GetValue(obj, null);
+                    //if(src == null)
+                    //{
+                    //    src = Activator.CreateInstance(pp.PropertyType);
+                    //}
+                    object dst = this.ReadIni(section, key, src, file.FullName, pp.PropertyType, Type.GetTypeCode(pp.PropertyType));
                     pp.SetValue(obj, dst, null);
                 }
             }
