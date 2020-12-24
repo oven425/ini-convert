@@ -47,7 +47,7 @@
   <PropertyGroup>
     <PostBuildEvent>echo $(TargetFrameworkVersion)
 echo $(TargetPath)
-mkdir $(TargetDir)$(TargetFrameworkVersion)
-xcopy $(TargetPath) $(TargetDir)$(TargetFrameworkVersion) /Y</PostBuildEvent>
+mkdir $(SolutionDir)\Nuget\dll\$(TargetFrameworkVersion)
+xcopy $(TargetPath) $(SolutionDir)\Nuget\dll\$(TargetFrameworkVersion) /Y</PostBuildEvent>
   </PropertyGroup>
 </Project>
