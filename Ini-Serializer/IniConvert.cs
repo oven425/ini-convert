@@ -56,26 +56,6 @@ namespace QSoft.Ini
                         break;
                     case TypeCode.Object:
                         {
-                            //if(type.IsGenericType == true)
-                            //{
-                            //    this.WriteINI(section, datas.ElementAt(i).Key, datas.ElementAt(i).Value, fileinfo.FullName);
-                            //}
-                            //else if(type.IsArray == true)
-                            //{
-                            //    this.WriteINI(section, datas.ElementAt(i).Key, datas.ElementAt(i).Value, fileinfo.FullName);
-                            //}
-                            //else if(type.BaseType == null)
-                            //{
-
-                            //}
-                            //else if (oo is TimeSpan)
-                            //{
-                            //    this.WriteINI(section, datas.ElementAt(i).Key, datas.ElementAt(i).Value, fileinfo.FullName);
-                            //}
-                            //else
-                            //{
-                            //    this.WriteINI(section, datas.ElementAt(i).Key, datas.ElementAt(i).Value, fileinfo.FullName);
-                            //}
                             if(type.BaseType != null)
                             {
                                 this.WriteINI(section, datas.ElementAt(i).Key, datas.ElementAt(i).Value, fileinfo.FullName);
@@ -130,6 +110,7 @@ namespace QSoft.Ini
                             }
                             else
                             {
+                                
                                 XmlSerializer xml = new XmlSerializer(type);
                                 using (MemoryStream mm = new MemoryStream())
                                 {
@@ -384,6 +365,7 @@ namespace QSoft.Ini
             var pps = type.GetProperties().Where(x => x.CanWrite && x.CanRead);
             foreach (PropertyInfo pp in pps)
             {
+                var attrs = pp.GetCustomAttributes(true);
                 var attribe = pp.GetCustomAttributes(typeof(IniSectionKey), false).FirstOrDefault() as IniSectionKey;
                 string section = type.Name;
                 if (defaultsection != null && string.IsNullOrEmpty(defaultsection.DefaultSection) == true && defaultsection.DefaultSection.Trim().Length > 0)
@@ -391,7 +373,7 @@ namespace QSoft.Ini
                     section = defaultsection.DefaultSection;
                 }
                 string key = pp.Name;
-                bool ignore = false;
+                bool ignore = attrs.Any(x=>x is IniIgnore);
                 if (attribe != null)
                 {
                     if (string.IsNullOrEmpty(attribe.Section) == false&& attribe.Section.Trim().Length > 0)
@@ -402,7 +384,7 @@ namespace QSoft.Ini
                     {
                         key = attribe.Key;
                     }
-                    ignore = attribe.Ignore;
+                    //ignore = attribe.Ignore;
                 }
                 if (ignore == false)
                 {
@@ -425,6 +407,7 @@ namespace QSoft.Ini
             var pps = type.GetProperties().Where(x=>x.CanWrite&&x.CanRead);
             foreach (PropertyInfo pp in pps)
             {
+                var attrs = pp.GetCustomAttributes(true);
                 var attribe = pp.GetCustomAttributes(typeof(IniSectionKey), false).FirstOrDefault() as IniSectionKey;
                 string section = type.Name;
                 if (defaultsection != null && string.IsNullOrEmpty(defaultsection.DefaultSection) == true && defaultsection.DefaultSection.Trim().Length > 0)
@@ -432,7 +415,7 @@ namespace QSoft.Ini
                     section = defaultsection.DefaultSection;
                 }
                 string key = pp.Name;
-                bool ignore = false;
+                bool ignore = attrs.Any(x => x is IniIgnore);
                 if (attribe != null)
                 {
                     if (string.IsNullOrEmpty(attribe.Section) == false && attribe.Section.Trim().Length>0)
@@ -443,7 +426,7 @@ namespace QSoft.Ini
                     {
                         key = attribe.Key;
                     }
-                    ignore = attribe.Ignore;
+                    //ignore = attribe.Ignore;
                 }
                 if (ignore == false)
                 {
@@ -467,6 +450,39 @@ namespace QSoft.Ini
     {
         public string Section { set; get; }
         public string Key { set; get; }
-        public bool Ignore { set; get; }
+        //public bool Ignore { set; get; }
     }
+
+    [AttributeUsage(AttributeTargets.Property, Inherited = false)]
+    public class IniIgnore:Attribute
+    {
+
+    }
+
+    [AttributeUsage(AttributeTargets.Property, Inherited = false)]
+    public class IniComment : Attribute
+    {
+        public IniComment(string comment)
+        {
+            this.Comment = comment;
+        }
+        public string Comment { set; get; }
+    }
+    //comment
+
+    //[AttributeUsage(AttributeTargets.Property, Inherited = false)]
+    //public class IniArray:Attribute
+    //{
+    //    public string Name { set; get; }
+    //}
+
+    //[AttributeUsage(AttributeTargets.Property, Inherited = false)]
+    //public class IniArrayItem : Attribute
+    //{
+    //    public IniArrayItem(string name)
+    //    {
+    //        this.Name = name;
+    //    }
+    //    public string Name { private set; get; }
+    //}
 }
