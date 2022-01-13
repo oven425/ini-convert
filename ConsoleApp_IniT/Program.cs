@@ -92,7 +92,8 @@ namespace ConsoleApp_IniT
             inifile.Password = "password";
             inifile.Time = new TimeSpan(10, 9, 9, 7);
             inifile.Test = new CTest() { A = "A1", B = 1, Test1 = new CTest_1() { A1 = "A11", B1 = 100 } };
-            ini.Serialize(inifile, "test1.ini");
+            //ini.Serialize(inifile, "test1.ini");
+            string ini_str = ini.Serialize(inifile);
 
             CSetting inifile1 = new CSetting();
             ini.Deserialize(inifile1, "test1.ini");
@@ -116,6 +117,9 @@ namespace ConsoleApp_IniT
         public int MinCount { set; get; } = 10;
         [QSoft.Ini.IniSectionKey(Key = "Time")]
         public TimeSpan Time { set; get; }
+
+        public double doubleMax { set; get; } = double.MaxValue;
+        public double doubleMin { set; get; } = double.MinValue;
 
         //[QSoft.Ini.IniArrayItem("Data")]
         public List<CTest_1> Tests { set; get; } = new List<CTest_1>();

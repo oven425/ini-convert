@@ -20,6 +20,7 @@ namespace QSoft.Ini
 
     public class IniSerializer
     {
+        Dictionary<string, IniDictionary> m_Sections = new Dictionary<string, IniDictionary>();
         public void Serialize(string section, Dictionary<string, object> datas, string filename)
         {
             FileInfo fileinfo = new FileInfo(filename);
@@ -65,6 +66,10 @@ namespace QSoft.Ini
                 }
             }
         }
+
+        
+
+
 
         void WriteINI(string section, string key, object oo, string  filename)
         {
@@ -349,6 +354,61 @@ namespace QSoft.Ini
             return dst;
         }
 
+        public string Serialize(object obj)
+        {
+            //FileInfo file = new FileInfo(filename);
+            Type type = obj.GetType();
+            TypeCode typecode = Type.GetTypeCode(type);
+            if (typecode != TypeCode.Object)
+            {
+                return "";
+            }
+            StringBuilder strb = new StringBuilder();
+            IniSection defaultsection = type.GetCustomAttributes(typeof(IniSection), false).FirstOrDefault() as IniSection;
+            strb.AppendLine($"[{type.Name}]");
+
+            var pps = type.GetProperties().Where(x => x.CanWrite && x.CanRead);
+            foreach (PropertyInfo pp in pps)
+            {
+                var attrs = pp.GetCustomAttributes(true);
+                var attribe = pp.GetCustomAttributes(typeof(IniSectionKey), false).FirstOrDefault() as IniSectionKey;
+                string section = type.Name;
+                if (defaultsection != null && string.IsNullOrEmpty(defaultsection.DefaultSection) == true && defaultsection.DefaultSection.Trim().Length > 0)
+                {
+                    section = defaultsection.DefaultSection;
+                }
+                string key = pp.Name;
+                bool ignore = attrs.Any(x => x is IniIgnore);
+                if (attribe != null)
+                {
+                    if (string.IsNullOrEmpty(attribe.Section) == false && attribe.Section.Trim().Length > 0)
+                    {
+                        section = attribe.Section;
+                    }
+                    if (string.IsNullOrEmpty(attribe.Key) == false && attribe.Key.Trim().Length > 0)
+                    {
+                        key = attribe.Key;
+                    }
+                    //ignore = attribe.Ignore;
+                }
+                if (ignore == false)
+                {
+                    strb.AppendLine($"{key}={pp.GetValue(obj, null)}");
+                    //this.WriteINI(section, key, pp.GetValue(obj, null), file.FullName);
+                }
+            }
+            return strb.ToString();
+        }
+
+
+        void Serialize(PropertyInfo property, object obj)
+        {
+
+        }
+
+
+
+
         public void Serialize(object obj, string filename)
         {
             FileInfo file = new FileInfo(filename);
@@ -485,4 +545,9 @@ namespace QSoft.Ini
     //    }
     //    public string Name { private set; get; }
     //}
+
+    public class IniDictionary : Dictionary<string, string>
+    {
+        public string Name { set; get; }
+    }
 }
