@@ -20,7 +20,7 @@ namespace QSoft.Ini
 
     public class IniSerializer
     {
-        Dictionary<string, IniDictionary> m_Sections = new Dictionary<string, IniDictionary>();
+        Dictionary<string, Dictionary<string, string>> m_Sections = new Dictionary<string, Dictionary<string, string>>(); 
         public void Serialize(string section, Dictionary<string, object> datas, string filename)
         {
             FileInfo fileinfo = new FileInfo(filename);
@@ -356,57 +356,146 @@ namespace QSoft.Ini
 
         public string Serialize(object obj)
         {
-            //FileInfo file = new FileInfo(filename);
-            Type type = obj.GetType();
-            TypeCode typecode = Type.GetTypeCode(type);
-            if (typecode != TypeCode.Object)
-            {
-                return "";
-            }
+            var section1 = obj.GetType().GetCustomAttributes(true).FirstOrDefault(x => x.GetType() == typeof(IniSection)) as IniSection;
+            Build(obj, section1 == null?obj.GetType().Name: section1.DefaultSection);
             StringBuilder strb = new StringBuilder();
-            IniSection defaultsection = type.GetCustomAttributes(typeof(IniSection), false).FirstOrDefault() as IniSection;
-            strb.AppendLine($"[{type.Name}]");
-
-            var pps = type.GetProperties().Where(x => x.CanWrite && x.CanRead);
-            foreach (PropertyInfo pp in pps)
+            foreach (var section in this.m_SectionList)
             {
-                var attrs = pp.GetCustomAttributes(true);
-                var attribe = pp.GetCustomAttributes(typeof(IniSectionKey), false).FirstOrDefault() as IniSectionKey;
-                string section = type.Name;
-                if (defaultsection != null && string.IsNullOrEmpty(defaultsection.DefaultSection) == true && defaultsection.DefaultSection.Trim().Length > 0)
+                strb.AppendLine($"[{section}]");
+                foreach(var oo in this.m_Sections[section])
                 {
-                    section = defaultsection.DefaultSection;
+                    strb.AppendLine($"{oo.Key}={oo.Value}");
                 }
-                string key = pp.Name;
-                bool ignore = attrs.Any(x => x is IniIgnore);
-                if (attribe != null)
-                {
-                    if (string.IsNullOrEmpty(attribe.Section) == false && attribe.Section.Trim().Length > 0)
-                    {
-                        section = attribe.Section;
-                    }
-                    if (string.IsNullOrEmpty(attribe.Key) == false && attribe.Key.Trim().Length > 0)
-                    {
-                        key = attribe.Key;
-                    }
-                    //ignore = attribe.Ignore;
-                }
-                if (ignore == false)
-                {
-                    strb.AppendLine($"{key}={pp.GetValue(obj, null)}");
-                    //this.WriteINI(section, key, pp.GetValue(obj, null), file.FullName);
-                }
+                strb.AppendLine();
             }
             return strb.ToString();
+
+            ////FileInfo file = new FileInfo(filename);
+            //Type type = obj.GetType();
+            //TypeCode typecode = Type.GetTypeCode(type);
+            //if (typecode != TypeCode.Object)
+            //{
+            //    return "";
+            //}
+            //StringBuilder strb = new StringBuilder();
+            //IniSection defaultsection = type.GetCustomAttributes(typeof(IniSection), false).FirstOrDefault() as IniSection;
+            //strb.AppendLine($"[{type.Name}]");
+
+            //var pps = type.GetProperties().Where(x => x.CanWrite && x.CanRead);
+            //foreach (PropertyInfo pp in pps)
+            //{
+            //    var attrs = pp.GetCustomAttributes(true);
+            //    var attribe = pp.GetCustomAttributes(typeof(IniSectionKey), false).FirstOrDefault() as IniSectionKey;
+            //    string section = type.Name;
+            //    if (defaultsection != null && string.IsNullOrEmpty(defaultsection.DefaultSection) == true && defaultsection.DefaultSection.Trim().Length > 0)
+            //    {
+            //        section = defaultsection.DefaultSection;
+            //    }
+            //    string key = pp.Name;
+            //    bool ignore = attrs.Any(x => x is IniIgnore);
+            //    if (attribe != null)
+            //    {
+            //        if (string.IsNullOrEmpty(attribe.Section) == false && attribe.Section.Trim().Length > 0)
+            //        {
+            //            section = attribe.Section;
+            //        }
+            //        if (string.IsNullOrEmpty(attribe.Key) == false && attribe.Key.Trim().Length > 0)
+            //        {
+            //            key = attribe.Key;
+            //        }
+            //        //ignore = attribe.Ignore;
+            //    }
+            //    if (ignore == false)
+            //    {
+            //        strb.AppendLine($"{key}={pp.GetValue(obj, null)}");
+            //        //this.WriteINI(section, key, pp.GetValue(obj, null), file.FullName);
+            //    }
+            //}
+            //return strb.ToString();
         }
 
-
-        void Serialize(PropertyInfo property, object obj)
+        List<string> m_SectionList = new List<string>();
+        void Build(object obj, string section_name)
         {
+            if (this.m_Sections.ContainsKey(section_name) == false)
+            {
+                m_SectionList.Add(section_name);
+                this.m_Sections[section_name] = new Dictionary<string, string>();
+            }
+            var pps = obj.GetType().GetProperties().Where(x => x.CanRead == true)
+                .Select(x => new { attrs = x.GetCustomAttributes(true), property = x, typecode = Type.GetTypeCode(x.PropertyType) })
+                .Where(x => x.attrs.Any(y => y.GetType() == typeof(IniIgnore))==false);
+            foreach(var pp in pps)
+            {
+                switch(pp.typecode)
+                {
+                    case TypeCode.Object:
+                        {
+                            if(pp.property.PropertyType.IsGenericType == true)
+                            {
+                                if(pp.property.PropertyType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                                {
 
+                                }
+                            }
+                            else if(pp.property.PropertyType == typeof(TimeSpan))
+                            {
+                                this.m_Sections[section_name][pp.property.Name] = $"{pp.property.GetValue(obj, null)}";
+                            }
+                            else
+                            {
+                                var subobj = pp.property.GetValue(obj, null);
+                                if(subobj != null)
+                                {
+                                    var subobj_section = pp.attrs.FirstOrDefault(x => x.GetType() == typeof(IniSection)) as IniSection;
+                                    if(subobj_section != null && string.IsNullOrEmpty(subobj_section.DefaultSection) == false)
+                                    {
+                                        this.Build(subobj, subobj_section.DefaultSection);
+                                    }
+                                    else
+                                    {
+                                        XmlSerializer xml = new XmlSerializer(pp.property.PropertyType);
+                                        using (MemoryStream mm = new MemoryStream())
+                                        {
+                                            using (StreamWriter sw = new StreamWriter(mm, Encoding.UTF8))
+                                            {
+                                                using (var xmlWriter = XmlWriter.Create(sw, new XmlWriterSettings { Indent = false, Encoding = Encoding.UTF8 }))
+                                                {
+                                                    xml.Serialize(xmlWriter, subobj);
+                                                }
+                                                byte[] bb = mm.ToArray();
+                                                string str = Encoding.UTF8.GetString(bb, 3, bb.Length - 3);
+                                                this.m_Sections[section_name][pp.property.Name] = str;
+                                                //because utf-8 begin is 0xef 0xbb 0xbf
+                                                //remove 3 byte, WritePrivateProfileStringW is no ? at being
+                                                //string str = Encoding.UTF8.GetString(bb, 3, bb.Length - 3);
+                                                //NativeMethods.WritePrivateProfileString(section, key, str, filename);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    default:
+                        {
+                            this.m_Sections[section_name][pp.property.Name] = $"{pp.property.GetValue(obj, null)}";
+                        }
+                        break;
+                }
+            }
         }
 
 
+        void Parse(string data)
+        {
+            StringReader strr = new StringReader(data);
+            while (true)
+            {
+                var str = strr.ReadLine();
+                
+            }
+        }
 
 
         public void Serialize(object obj, string filename)
@@ -546,8 +635,8 @@ namespace QSoft.Ini
     //    public string Name { private set; get; }
     //}
 
-    public class IniDictionary : Dictionary<string, string>
-    {
-        public string Name { set; get; }
-    }
+    //public class IniDictionary : Dictionary<string, string>
+    //{
+    //    public string Name { set; get; }
+    //}
 }

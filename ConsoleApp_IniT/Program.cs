@@ -101,12 +101,13 @@ namespace ConsoleApp_IniT
 
     }
 
-    //[QSoft.Ini.IniSection(DefaultSection = "General")]
+    [QSoft.Ini.IniSection(DefaultSection = "General")]
     public class CSetting
     {
         [QSoft.Ini.IniSectionKey(Section = "Auth", Key = "Account")]
         public string Name { set; get; }
 
+        [QSoft.Ini.IniIgnore]
         [QSoft.Ini.IniSectionKey(Section = "Auth", Key = "Password")]
         public string Password { set; get; }
 
@@ -121,8 +122,8 @@ namespace ConsoleApp_IniT
         public double doubleMax { set; get; } = double.MaxValue;
         public double doubleMin { set; get; } = double.MinValue;
 
-        //[QSoft.Ini.IniArrayItem("Data")]
-        public List<CTest_1> Tests { set; get; } = new List<CTest_1>();
+        ////[QSoft.Ini.IniArrayItem("Data")]
+        //public List<CTest_1> Tests { set; get; } = new List<CTest_1>();
         public CTest Test { set; get; }
     }
 
