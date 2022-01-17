@@ -18,6 +18,8 @@ namespace QSoft.Ini
         internal static extern int GetPrivateProfileString(string section, string key, string def, StringBuilder retVal, int size, string filePath);
     }
 
+
+
     public class IniSerializer
     {
         Dictionary<string, Dictionary<string, string>> m_Sections = new Dictionary<string, Dictionary<string, string>>(); 
@@ -369,49 +371,6 @@ namespace QSoft.Ini
                 strb.AppendLine();
             }
             return strb.ToString();
-
-            ////FileInfo file = new FileInfo(filename);
-            //Type type = obj.GetType();
-            //TypeCode typecode = Type.GetTypeCode(type);
-            //if (typecode != TypeCode.Object)
-            //{
-            //    return "";
-            //}
-            //StringBuilder strb = new StringBuilder();
-            //IniSection defaultsection = type.GetCustomAttributes(typeof(IniSection), false).FirstOrDefault() as IniSection;
-            //strb.AppendLine($"[{type.Name}]");
-
-            //var pps = type.GetProperties().Where(x => x.CanWrite && x.CanRead);
-            //foreach (PropertyInfo pp in pps)
-            //{
-            //    var attrs = pp.GetCustomAttributes(true);
-            //    var attribe = pp.GetCustomAttributes(typeof(IniSectionKey), false).FirstOrDefault() as IniSectionKey;
-            //    string section = type.Name;
-            //    if (defaultsection != null && string.IsNullOrEmpty(defaultsection.DefaultSection) == true && defaultsection.DefaultSection.Trim().Length > 0)
-            //    {
-            //        section = defaultsection.DefaultSection;
-            //    }
-            //    string key = pp.Name;
-            //    bool ignore = attrs.Any(x => x is IniIgnore);
-            //    if (attribe != null)
-            //    {
-            //        if (string.IsNullOrEmpty(attribe.Section) == false && attribe.Section.Trim().Length > 0)
-            //        {
-            //            section = attribe.Section;
-            //        }
-            //        if (string.IsNullOrEmpty(attribe.Key) == false && attribe.Key.Trim().Length > 0)
-            //        {
-            //            key = attribe.Key;
-            //        }
-            //        //ignore = attribe.Ignore;
-            //    }
-            //    if (ignore == false)
-            //    {
-            //        strb.AppendLine($"{key}={pp.GetValue(obj, null)}");
-            //        //this.WriteINI(section, key, pp.GetValue(obj, null), file.FullName);
-            //    }
-            //}
-            //return strb.ToString();
         }
 
         List<string> m_SectionList = new List<string>();
@@ -477,6 +436,12 @@ namespace QSoft.Ini
                             }
                         }
                         break;
+                    case TypeCode.Double:
+                        {
+                            var vv = (double)pp.property.GetValue(obj, null);
+                            this.m_Sections[section_name][pp.property.Name] = $"{vv.ToString("R")}";
+                        }
+                        break;
                     default:
                         {
                             this.m_Sections[section_name][pp.property.Name] = $"{pp.property.GetValue(obj, null)}";
@@ -487,14 +452,41 @@ namespace QSoft.Ini
         }
 
 
-        void Parse(string data)
+        Dictionary<string,Dictionary<string,string>> Parse(string data)
         {
+            var dics = new Dictionary<string, Dictionary<string, string>>();
             StringReader strr = new StringReader(data);
-            while (true)
+            string section = "";
+            while (strr.Peek() != -1)
             {
-                var str = strr.ReadLine();
+                int idx = -1;
                 
+                var str = strr.ReadLine();
+                if(string.IsNullOrEmpty(str) == false&& str.Length>2)
+                {
+                    if(str.First() == '[' && str.Last()==']')
+                    {
+                        section = str.Trim('[', ']');
+                        dics[section] = new Dictionary<string, string>();
+                    }
+                    else if(str.First()==';')
+                    {
+
+                    }
+                    else if((idx=str.IndexOf('='))>0)
+                    {
+                        var str_key = str.Substring(0, idx);
+                        var str_value = str.Substring(idx + 1, str.Length - (idx + 1));
+                        dics[section][str_key] = str_value;
+                    }
+                    else
+                    {
+                        System.Diagnostics.Trace.WriteLine("");
+                    }
+                }
             }
+
+            return dics;
         }
 
 
@@ -538,6 +530,102 @@ namespace QSoft.Ini
                 if (ignore == false)
                 {
                     this.WriteINI(section, key, pp.GetValue(obj, null), file.FullName);
+                }
+            }
+        }
+
+        public T Deserialize<T>(string ini) where T : class
+        {
+            var dics = this.Parse(ini);
+            var type = typeof(T);
+            var oi = type.GetCustomAttributes(true).FirstOrDefault(x => x == typeof(IniSection));
+            var attr_section = (type.GetCustomAttributes(true).FirstOrDefault(x=>x.GetType() == typeof(IniSection)) as IniSection)?.DefaultSection;
+            var section_name = attr_section ?? type.Name;
+            if(dics.ContainsKey(section_name) == true)
+            {
+                var obj = Activator.CreateInstance<T>();
+                Deserialize(dics, obj, attr_section ?? type.Name);
+                return obj;
+            }
+            
+
+            return default(T);
+        }
+
+        void Deserialize(Dictionary<string,Dictionary<string, string>> ini, object obj, string section_name)
+        {
+            var pps = obj.GetType().GetProperties().Where(x => x.CanWrite == true)
+                .Select(x=>new { x, property=x.PropertyType, attrs=x.GetCustomAttributes(true), typecode=Type.GetTypeCode(x.PropertyType) });
+            pps = pps.Where(x => x.attrs.Any(y => y.GetType() == typeof(IniIgnore))==false);
+            
+            foreach (var pp in pps)
+            {
+                string str = "";
+                if(ini[section_name].ContainsKey(pp.x.Name) == true)
+                {
+                    str = ini[section_name][pp.x.Name];
+                }
+                switch (pp.typecode)
+                {
+                    case TypeCode.Object:
+                        {
+                            if(pp.property == typeof(TimeSpan))
+                            {
+                                var timespan = TimeSpan.Parse(str);
+                                pp.x.SetValue(obj, timespan, null);
+                            }
+                            else if(pp.property.IsGenericType==true && pp.property.GetGenericTypeDefinition()==typeof(IEnumerable<>))
+                            {
+                                
+                            }
+                            else
+                            {
+                                var subobj_section = pp.attrs.FirstOrDefault(x => x.GetType() == typeof(IniSection)) as IniSection;
+                                if (subobj_section != null && string.IsNullOrEmpty(subobj_section.DefaultSection) == false)
+                                {
+                                    var subobj = Activator.CreateInstance(pp.property);
+                                    Deserialize(ini, subobj, subobj_section.DefaultSection);
+                                    pp.x.SetValue(obj, subobj, null);
+                                }
+                                else
+                                {
+                                    XmlSerializer xml = new XmlSerializer(pp.property);
+
+                                    using (MemoryStream mm = new MemoryStream(Encoding.UTF8.GetBytes(str)))
+                                    {
+                                        var ddd = xml.Deserialize(mm);
+                                        pp.x.SetValue(obj, ddd, null);
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    case TypeCode.Int16:
+                        {
+                            pp.x.SetValue(obj, Convert.ToInt16(str), null);
+                        }
+                        break;
+                    case TypeCode.Int32:
+                        {
+                            pp.x.SetValue(obj, Convert.ToInt32(str), null);
+                        }
+                        break;
+                    case TypeCode.Double:
+                        {
+                            pp.x.SetValue(obj, Convert.ToDouble(str), null);
+                        }
+                        break;
+                    case TypeCode.String:
+                        {
+                            pp.x.SetValue(obj, str, null);
+                        }
+                        break;
+                    default:
+                        {
+                            
+                            
+                        }
+                        break;
                 }
             }
         }
@@ -587,7 +675,7 @@ namespace QSoft.Ini
         }
     }
 
-    [AttributeUsage(AttributeTargets.Class, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Class| AttributeTargets.Property, Inherited = false)]
     public class IniSection : Attribute
     {
         public string DefaultSection { set; get; }
@@ -635,8 +723,19 @@ namespace QSoft.Ini
     //    public string Name { private set; get; }
     //}
 
-    //public class IniDictionary : Dictionary<string, string>
-    //{
-    //    public string Name { set; get; }
-    //}
+
+
+    public static class IniConvert
+    {
+        static public string Serialize(object obj)
+        {
+            return "";
+        }
+
+        static public T Deserialize<T>(string ini)
+        {
+            return default(T);
+        }
+    }
+
 }
