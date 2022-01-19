@@ -392,7 +392,25 @@ namespace QSoft.Ini
                         {
                             if(pp.property.PropertyType.IsGenericType == true)
                             {
-                                if(pp.property.PropertyType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+                                var define = pp.property.PropertyType.GetGenericTypeDefinition();
+                                if (define == typeof(IEnumerable<>) || define==typeof(List<>))
+                                {
+                                    var ienumable = pp.property.GetValue(obj, null) as IEnumerable<object>;
+                                    var iniarray = pp.attrs.FirstOrDefault(x => x.GetType() == typeof(IniArray)) as IniArray;
+                                    if(iniarray==null)
+                                    {
+
+                                    }
+                                    else
+                                    {
+                                        int index = iniarray.BaseIndex;
+                                        foreach(var oo in ienumable)
+                                        {
+                                            this.Build(oo, $"{iniarray.Name}_{index++}");
+                                        }
+                                    }
+                                }
+                                else
                                 {
 
                                 }
@@ -569,14 +587,48 @@ namespace QSoft.Ini
                 {
                     case TypeCode.Object:
                         {
-                            if(pp.property == typeof(TimeSpan))
+                            if (pp.property.IsGenericType == true)
+                            {
+                                var define = pp.property.GetGenericTypeDefinition();
+                                if (define == typeof(List<>))
+                                {
+
+
+                                    var ienumable = pp.x.GetValue(obj, null);
+                                    MethodInfo method = ienumable.GetType().GetMethod("Add");
+                                    var iniarray = pp.attrs.FirstOrDefault(x => x.GetType() == typeof(IniArray)) as IniArray;
+                                    if (iniarray == null)
+                                    {
+
+                                    }
+                                    else
+                                    {
+                                        int index = iniarray.BaseIndex;
+                                        while (true)
+                                        {
+                                            string subobj_section = $"{iniarray.Name}_{index++}";
+                                            if (ini.ContainsKey(subobj_section) == true)
+                                            {
+                                                var subobj = Activator.CreateInstance(pp.property.GetGenericArguments()[0]);
+                                                Deserialize(ini, subobj, subobj_section);
+                                                method.Invoke(ienumable, new object[] { subobj });
+                                            }
+                                            else
+                                            {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+
+                                }
+                            }
+                            else if (pp.property == typeof(TimeSpan))
                             {
                                 var timespan = TimeSpan.Parse(str);
                                 pp.x.SetValue(obj, timespan, null);
-                            }
-                            else if(pp.property.IsGenericType==true && pp.property.GetGenericTypeDefinition()==typeof(IEnumerable<>))
-                            {
-                                
                             }
                             else
                             {
@@ -598,6 +650,58 @@ namespace QSoft.Ini
                                     }
                                 }
                             }
+                            //var define = pp.property.GetGenericTypeDefinition();
+                            //if (pp.property == typeof(TimeSpan))
+                            //{
+                            //    var timespan = TimeSpan.Parse(str);
+                            //    pp.x.SetValue(obj, timespan, null);
+                            //}
+                            //else if(pp.property.IsGenericType==true && (define == typeof(IEnumerable<>)|| define == typeof(List<>)))
+                            //{
+                            //    if (define == typeof(IEnumerable<>) || define == typeof(List<>))
+                            //    {
+                            //        var objtype = pp.x.PropertyType.GetGenericTypeDefinition().MakeGenericType(pp.property);
+                            //        var subobj = Activator.CreateInstance(pp.property);
+                            //        var ienumable = pp.x.GetValue(obj, null) as IEnumerable<object>;
+                            //        var iniarray = pp.attrs.FirstOrDefault(x => x.GetType() == typeof(IniArray)) as IniArray;
+                            //        if (iniarray == null)
+                            //        {
+
+                            //        }
+                            //        else
+                            //        {
+                            //            int index = iniarray.BaseIndex;
+                            //            foreach (var oo in ienumable)
+                            //            {
+                            //                this.Build(oo, $"{iniarray.Name}_{index++}");
+                            //            }
+                            //        }
+                            //    }
+                            //    else
+                            //    {
+
+                            //    }
+                            //}
+                            //else
+                            //{
+                            //    var subobj_section = pp.attrs.FirstOrDefault(x => x.GetType() == typeof(IniSection)) as IniSection;
+                            //    if (subobj_section != null && string.IsNullOrEmpty(subobj_section.DefaultSection) == false)
+                            //    {
+                            //        var subobj = Activator.CreateInstance(pp.property);
+                            //        Deserialize(ini, subobj, subobj_section.DefaultSection);
+                            //        pp.x.SetValue(obj, subobj, null);
+                            //    }
+                            //    else
+                            //    {
+                            //        XmlSerializer xml = new XmlSerializer(pp.property);
+
+                            //        using (MemoryStream mm = new MemoryStream(Encoding.UTF8.GetBytes(str)))
+                            //        {
+                            //            var ddd = xml.Deserialize(mm);
+                            //            pp.x.SetValue(obj, ddd, null);
+                            //        }
+                            //    }
+                            //}
                         }
                         break;
                     case TypeCode.Int16:
@@ -707,22 +811,17 @@ namespace QSoft.Ini
     }
     //comment
 
-    //[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-    //public class IniArray:Attribute
-    //{
-    //    public string Name { set; get; }
-    //}
-
-    //[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-    //public class IniArrayItem : Attribute
-    //{
-    //    public IniArrayItem(string name)
-    //    {
-    //        this.Name = name;
-    //    }
-    //    public string Name { private set; get; }
-    //}
-
+    [AttributeUsage(AttributeTargets.Property, Inherited = false)]
+    public class IniArray : Attribute
+    {
+        public IniArray(string name, int baseindex = 1)
+        {
+            this.Name = name;
+            this.BaseIndex = baseindex;
+        }
+        public int BaseIndex { private set; get; }
+        public string Name { private set; get; }
+    }
 
 
     public static class IniConvert

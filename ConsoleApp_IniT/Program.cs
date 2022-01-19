@@ -95,6 +95,12 @@ namespace ConsoleApp_IniT
             inifile.Name = "account";
             inifile.Password = "password";
             inifile.Time = new TimeSpan(10, 9, 9, 7);
+            inifile.Tests = new List<CTest_1>()
+            {
+                new CTest_1(){ A1="A1", B1=1},
+                new CTest_1(){ A1="B2", B1=2},
+                new CTest_1(){ A1="C3", B1=3}
+            };
             inifile.Test = new CTest() { A = "A1", B = 1, Test1 = new CTest_1() { A1 = "A11", B1 = 100 } };
             //ini.Serialize(inifile, "test1.ini");
             string ini_str = ini.Serialize(inifile);
@@ -127,8 +133,8 @@ namespace ConsoleApp_IniT
         public double doubleMax { set; get; } = double.MaxValue;
         public double doubleMin { set; get; } = double.MinValue;
 
-        ////[QSoft.Ini.IniArrayItem("Data")]
-        //public List<CTest_1> Tests { set; get; } = new List<CTest_1>();
+        [QSoft.Ini.IniArray("Data")]
+        public List<CTest_1> Tests { set; get; } = new List<CTest_1>();
 
         [IniSection(DefaultSection ="Test")]
         public CTest Test { set; get; }
