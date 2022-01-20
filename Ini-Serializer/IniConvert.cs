@@ -10,12 +10,12 @@ using System.Xml;
 
 namespace QSoft.Ini
 {
-    internal class NativeMethods
+    public class NativeMethods
     {
         [DllImport("kernel32", CharSet = CharSet.Unicode)]
-        internal static extern Boolean WritePrivateProfileString(string section, string key, string val, string filePath);
+        public static extern Boolean WritePrivateProfileString(string section, string key, string val, string filePath);
         [DllImport("kernel32", CharSet = CharSet.Unicode)]
-        internal static extern int GetPrivateProfileString(string section, string key, string def, StringBuilder retVal, int size, string filePath);
+        public static extern int GetPrivateProfileString(string section, string key, string def, StringBuilder retVal, int size, string filePath);
     }
 
 

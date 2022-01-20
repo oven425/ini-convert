@@ -1,6 +1,8 @@
 ﻿using QSoft.Ini;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 
 namespace ConsoleApp_IniT
 {
@@ -104,8 +106,14 @@ namespace ConsoleApp_IniT
             inifile.Test = new CTest() { A = "A1", B = 1, Test1 = new CTest_1() { A1 = "A11", B1 = 100 } };
             //ini.Serialize(inifile, "test1.ini");
             string ini_str = ini.Serialize(inifile);
-
+            File.WriteAllText("setting.ini", ini_str);
             var inides = ini.Deserialize<CSetting>(ini_str);
+
+            StringBuilder strb = new StringBuilder(8192);
+            QSoft.Ini.NativeMethods.GetPrivateProfileString("General", "Test", "0", strb, strb.Capacity, @"C:\Users\ben_hsu\source\repos\QSoft.Ini\ConsoleApp_IniT\bin\Debug\setting.ini");
+            System.Xml.Serialization.XmlSerializer xml = new System.Xml.Serialization.XmlSerializer(typeof(CTest));
+            var oii = xml.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(strb.ToString())));
+
             CSetting inifile1 = new CSetting();
             //ini.Deserialize(inifile1, "test1.ini");
         }
@@ -136,7 +144,7 @@ namespace ConsoleApp_IniT
         [QSoft.Ini.IniArray("Data")]
         public List<CTest_1> Tests { set; get; } = new List<CTest_1>();
 
-        [IniSection(DefaultSection ="Test")]
+        //[IniSection(DefaultSection ="Test")]
         public CTest Test { set; get; }
     }
 
@@ -176,37 +184,5 @@ namespace ConsoleApp_IniT
         public TimeSpan ChangeSpan { set; get; } = new TimeSpan(5, 6, 7, 8, 9);
     }
 
-    public class DataMax
-    {
-        public char Char { set; get; } = char.MaxValue;
-        public byte Byte { set; get; } = byte.MaxValue;
-        public short Short { set; get; } = short.MaxValue;
-        public ushort UShort { set; get; } = ushort.MaxValue;
-        public int Int { set; get; } = int.MaxValue;
-        public uint UInt { set; get; } = uint.MaxValue;
-        public long Long { set; get; } = long.MaxValue;
-        public ulong ULnt { set; get; } = ulong.MaxValue;
-        public float Float { set; get; } = float.MaxValue;
-        public double Double { set; get; } = double.MaxValue;
-        public decimal Decimal { set; get; } = decimal.MaxValue;
-        public DateTime DateTime { set; get; } = DateTime.MaxValue;
-        public TimeSpan TimeSpan { set; get; } = TimeSpan.MaxValue;
-    }
-
-    public class DataMin
-    {
-        public char Char { set; get; } = char.MinValue;
-        public byte Byte { set; get; } = byte.MinValue;
-        public short Short { set; get; } = short.MinValue;
-        public ushort UShort { set; get; } = ushort.MinValue;
-        public int Int { set; get; } = int.MinValue;
-        public uint UInt { set; get; } = uint.MinValue;
-        public long Long { set; get; } = long.MinValue;
-        public ulong ULnt { set; get; } = ulong.MinValue;
-        public float Float { set; get; } = float.MinValue;
-        public double Double { set; get; } = double.MinValue;
-        public decimal Decimal { set; get; } = decimal.MinValue;
-        public DateTime DateTime { set; get; } = DateTime.MinValue;
-        public TimeSpan TimeSpan { set; get; } = TimeSpan.MinValue;
-    }
+    
 }
