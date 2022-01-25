@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Reflection;
 
 namespace ConsoleApp_IniT
 {
@@ -10,6 +11,7 @@ namespace ConsoleApp_IniT
     {
         static void Main(string[] args)
         {
+            
             Type type1 = typeof(TimeSpan);
             double dd = double.MaxValue;
             var dd_str1 = dd.ToString("r");
@@ -105,14 +107,11 @@ namespace ConsoleApp_IniT
             };
             inifile.Test = new CTest() { A = "A1", B = 1, Test1 = new CTest_1() { A1 = "A11", B1 = 100 } };
             //ini.Serialize(inifile, "test1.ini");
-            string ini_str = ini.Serialize(inifile);
+            
+            string ini_str = IniConvert.SerializeObject(inifile);
             File.WriteAllText("setting.ini", ini_str);
-            var inides = ini.Deserialize<CSetting>(ini_str);
+            var inides = IniConvert.DeserializeObject<CSetting>(ini_str);
 
-            StringBuilder strb = new StringBuilder(8192);
-            QSoft.Ini.NativeMethods.GetPrivateProfileString("General", "Test", "0", strb, strb.Capacity, @"C:\Users\ben_hsu\source\repos\QSoft.Ini\ConsoleApp_IniT\bin\Debug\setting.ini");
-            System.Xml.Serialization.XmlSerializer xml = new System.Xml.Serialization.XmlSerializer(typeof(CTest));
-            var oii = xml.Deserialize(new MemoryStream(Encoding.UTF8.GetBytes(strb.ToString())));
 
             CSetting inifile1 = new CSetting();
             //ini.Deserialize(inifile1, "test1.ini");
@@ -123,6 +122,7 @@ namespace ConsoleApp_IniT
     [QSoft.Ini.IniSection(DefaultSection = "General")]
     public class CSetting
     {
+        public char Char { set; get; } = 'x';
         [QSoft.Ini.IniSectionKey(Section = "Auth", Key = "Account")]
         public string Name { set; get; }
 

@@ -3,6 +3,7 @@ using QSoft.Ini;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,22 +13,38 @@ namespace QSoft.Ini.Tests
     public class IniSerializerTests
     {
         [TestMethod()]
-        public void Ini()
+        public void Max()
         {
-            Assert.Fail();
+            DataMax obj = new DataMax();
+            var section1 = obj.GetType().GetCustomAttributes(true).FirstOrDefault(x => x.GetType() == typeof(IniSection)) as IniSection;
+            Dictionary<string, Dictionary<string, string>> sections = new Dictionary<string, Dictionary<string, string>>();
+            List<string> sectionlist = new List<string>();
+            var methods = typeof(IniConvert).GetMethod("Pack", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            methods.Invoke(null, new object[] { obj, section1 == null ? obj.GetType().Name : section1.DefaultSection, sections, sectionlist });
+            string inifile = @"C:\Users\ben_hsu\source\repos\QSoft.Ini\QSoft.IniTests\bin\Debug\native.ini";
+            foreach(var oo in sectionlist)
+            {
+                foreach(var item in sections[oo])
+                {
+                    NativeMethods.WritePrivateProfileString(oo, item.Key, item.Value, inifile);
+                }
+            }
+
         }
 
-        public class Setting
+        [TestMethod()]
+        public void Min()
         {
 
         }
+    }
 
-        public class User
-        {
-            public string Name { set; get; }
-            public int Age { set; get; }
-            public List<string> Phones { set; get; }
-        }
+    public class NativeMethods
+    {
+        [DllImport("kernel32", CharSet = CharSet.Unicode)]
+        public static extern Boolean WritePrivateProfileString(string section, string key, string val, string filePath);
+        [DllImport("kernel32", CharSet = CharSet.Unicode)]
+        public static extern int GetPrivateProfileString(string section, string key, string def, StringBuilder retVal, int size, string filePath);
     }
 
     public class DataMax
