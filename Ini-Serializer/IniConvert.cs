@@ -18,8 +18,9 @@ namespace QSoft.Ini
 
 
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
-    public class IniSectionKey:Attribute
+    public class IniSectionKey : Attribute
     {
+        [Obsolete("Please use IniConvert")]
         public string Section { set; get; }
         public string Key { set; get; }
         [Obsolete("Please use IniIgnore")]
@@ -32,26 +33,11 @@ namespace QSoft.Ini
 
     }
 
-    //[AttributeUsage(AttributeTargets.Property, Inherited = false)]
-    //public class IniComment : Attribute
-    //{
-    //    public IniComment(string comment)
-    //    {
-    //        this.Comment = comment;
-    //    }
-    //    public string Comment { set; get; }
-    //}
-
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
     public class IniArray : Attribute
     {
-        public IniArray(string name, int baseindex = 1)
-        {
-            this.Name = name;
-            this.BaseIndex = baseindex;
-        }
-        public int BaseIndex { private set; get; }
-        public string Name { private set; get; }
+        public int BaseIndex { set; get; }
+        public string Name { set; get; }
     }
 
 
@@ -78,6 +64,30 @@ namespace QSoft.Ini
             return strb.ToString();
         }
 
+        static string ToXml(object obj)
+        {
+            string str = "";
+            XmlSerializer xml = new XmlSerializer(obj.GetType());
+            using (MemoryStream mm = new MemoryStream())
+            {
+                using (StreamWriter sw = new StreamWriter(mm, Encoding.UTF8))
+                {
+                    using (var xmlWriter = XmlWriter.Create(sw, new XmlWriterSettings { Indent = false, Encoding = Encoding.UTF8 }))
+                    {
+                        xml.Serialize(xmlWriter, obj);
+                    }
+                    byte[] bb = mm.ToArray();
+                    str = Encoding.UTF8.GetString(bb, 3, bb.Length - 3);
+                    //because utf-8 begin is 0xef 0xbb 0xbf
+                    //remove 3 byte, WritePrivateProfileStringW is no ? at being
+                    //string str = Encoding.UTF8.GetString(bb, 3, bb.Length - 3);
+                    //NativeMethods.WritePrivateProfileString(section, key, str, filename);
+                }
+            }
+
+            return str;
+        }
+
         static void Pack(object obj, string section_name, Dictionary<string, Dictionary<string, string>> sections, List<string> sectionlist)
         {
             if (sections.ContainsKey(section_name) == false)
@@ -100,23 +110,29 @@ namespace QSoft.Ini
                                 if (define == typeof(IEnumerable<>) || define == typeof(List<>))
                                 {
                                     var ienumable = pp.property.GetValue(obj, null) as IEnumerable<object>;
+                                    if(ienumable == null)
+                                    {
+                                        continue;
+                                    }
                                     var iniarray = pp.attrs.FirstOrDefault(x => x.GetType() == typeof(IniArray)) as IniArray;
                                     if (iniarray == null)
                                     {
-
+                                        string xml = ToXml(pp.property.GetValue(obj, null));
+                                        sections[section_name][pp.property.Name] = xml;
                                     }
                                     else
                                     {
                                         int index = iniarray.BaseIndex;
                                         foreach (var oo in ienumable)
                                         {
-                                            Pack(oo, $"{iniarray.Name}_{index++}", sections, sectionlist);
+                                            Pack(oo, $"{iniarray.Name??pp.property.Name}_{index++}", sections, sectionlist);
                                         }
                                     }
                                 }
                                 else
                                 {
-
+                                    string xml = ToXml(pp.property.GetValue(obj, null));
+                                    sections[section_name][pp.property.Name] = xml;
                                 }
                             }
                             else if (pp.property.PropertyType == typeof(TimeSpan))
@@ -128,31 +144,20 @@ namespace QSoft.Ini
                                 var subobj = pp.property.GetValue(obj, null);
                                 if (subobj != null)
                                 {
-                                    var subobj_section = pp.attrs.FirstOrDefault(x => x.GetType() == typeof(IniSection)) as IniSection;
-                                    if (subobj_section != null && string.IsNullOrEmpty(subobj_section.DefaultSection) == false)
+                                    var subobj_section = pp.attrs.FirstOrDefault(x => x is IniSection) as IniSection;
+                                    if (subobj_section != null)
                                     {
-                                        Pack(subobj, subobj_section.DefaultSection, sections, sectionlist);
+                                        string sub_name = pp.property.Name;
+                                        if(string.IsNullOrEmpty(subobj_section.DefaultSection) == false)
+                                        {
+                                            sub_name = subobj_section.DefaultSection;
+                                        }
+                                        Pack(subobj, sub_name, sections, sectionlist);
                                     }
                                     else
                                     {
-                                        XmlSerializer xml = new XmlSerializer(pp.property.PropertyType);
-                                        using (MemoryStream mm = new MemoryStream())
-                                        {
-                                            using (StreamWriter sw = new StreamWriter(mm, Encoding.UTF8))
-                                            {
-                                                using (var xmlWriter = XmlWriter.Create(sw, new XmlWriterSettings { Indent = false, Encoding = Encoding.UTF8 }))
-                                                {
-                                                    xml.Serialize(xmlWriter, subobj);
-                                                }
-                                                byte[] bb = mm.ToArray();
-                                                string str = Encoding.UTF8.GetString(bb, 3, bb.Length - 3);
-                                                sections[section_name][pp.property.Name] = str;
-                                                //because utf-8 begin is 0xef 0xbb 0xbf
-                                                //remove 3 byte, WritePrivateProfileStringW is no ? at being
-                                                //string str = Encoding.UTF8.GetString(bb, 3, bb.Length - 3);
-                                                //NativeMethods.WritePrivateProfileString(section, key, str, filename);
-                                            }
-                                        }
+                                        string xml = ToXml(subobj);
+                                        sections[section_name][pp.property.Name] = xml;
                                     }
                                 }
                             }
@@ -166,7 +171,11 @@ namespace QSoft.Ini
                         break;
                     default:
                         {
-                            sections[section_name][pp.property.Name] = $"{pp.property.GetValue(obj, null)}";
+                            var subobj = pp.property.GetValue(obj, null);
+                            if(subobj != null)
+                            {
+                                sections[section_name][pp.property.Name] = $"{pp.property.GetValue(obj, null)}";
+                            }
                         }
                         break;
                 }
@@ -183,7 +192,7 @@ namespace QSoft.Ini
             if (dics.ContainsKey(section_name) == true)
             {
                 var obj = Activator.CreateInstance<T>();
-                Deserialize(dics, obj, attr_section ?? type.Name);
+                UnPack(dics, obj, attr_section ?? type.Name);
                 return obj;
             }
 
@@ -191,7 +200,19 @@ namespace QSoft.Ini
             return default(T);
         }
 
-        static void Deserialize(Dictionary<string, Dictionary<string, string>> ini, object obj, string section_name)
+        static object FromXml(string str , Type type)
+        {
+            object obj = null;
+            XmlSerializer xml = new XmlSerializer(type);
+            using (MemoryStream mm = new MemoryStream(Encoding.UTF8.GetBytes(str)))
+            {
+                obj = xml.Deserialize(mm);
+            }
+            
+            return obj;
+        }
+
+        static void UnPack(Dictionary<string, Dictionary<string, string>> ini, object obj, string section_name)
         {
             var pps = obj.GetType().GetProperties().Where(x => x.CanWrite == true)
                 .Select(x => new { x, property = x.PropertyType, attrs = x.GetCustomAttributes(true), typecode = Type.GetTypeCode(x.PropertyType) });
@@ -199,11 +220,12 @@ namespace QSoft.Ini
 
             foreach (var pp in pps)
             {
-                string str = "";
+                string str = null;
                 if (ini[section_name].ContainsKey(pp.x.Name) == true)
                 {
                     str = ini[section_name][pp.x.Name];
                 }
+
                 switch (pp.typecode)
                 {
                     case TypeCode.Object:
@@ -216,22 +238,28 @@ namespace QSoft.Ini
 
 
                                     var ienumable = pp.x.GetValue(obj, null);
+                                    if(ienumable == null)
+                                    {
+                                        ienumable = Activator.CreateInstance(define.MakeGenericType(pp.property.GetGenericArguments()[0]));
+                                        pp.x.SetValue(obj, ienumable, null);
+                                    }
                                     MethodInfo method = ienumable.GetType().GetMethod("Add");
                                     var iniarray = pp.attrs.FirstOrDefault(x => x.GetType() == typeof(IniArray)) as IniArray;
                                     if (iniarray == null)
                                     {
-
+                                        var ddd = FromXml(str, pp.property);
+                                        pp.x.SetValue(obj, ddd, null);
                                     }
                                     else
                                     {
                                         int index = iniarray.BaseIndex;
                                         while (true)
                                         {
-                                            string subobj_section = $"{iniarray.Name}_{index++}";
+                                            string subobj_section = $"{iniarray.Name??pp.x.Name}_{index++}";
                                             if (ini.ContainsKey(subobj_section) == true)
                                             {
                                                 var subobj = Activator.CreateInstance(pp.property.GetGenericArguments()[0]);
-                                                Deserialize(ini, subobj, subobj_section);
+                                                UnPack(ini, subobj, subobj_section);
                                                 method.Invoke(ienumable, new object[] { subobj });
                                             }
                                             else
@@ -254,21 +282,30 @@ namespace QSoft.Ini
                             else
                             {
                                 var subobj_section = pp.attrs.FirstOrDefault(x => x.GetType() == typeof(IniSection)) as IniSection;
-                                if (subobj_section != null && string.IsNullOrEmpty(subobj_section.DefaultSection) == false)
+                                
+                                if (subobj_section != null)
                                 {
+
+                                    var subobj_name = pp.x.Name;
+                                    if(string.IsNullOrEmpty(subobj_section.DefaultSection) == false)
+                                    {
+                                        subobj_name = subobj_section.DefaultSection;
+                                    }
                                     var subobj = Activator.CreateInstance(pp.property);
-                                    Deserialize(ini, subobj, subobj_section.DefaultSection);
+                                    UnPack(ini, subobj, subobj_name);
                                     pp.x.SetValue(obj, subobj, null);
                                 }
                                 else
                                 {
-                                    XmlSerializer xml = new XmlSerializer(pp.property);
+                                    var ddd = FromXml(str, pp.property);
+                                    pp.x.SetValue(obj, ddd, null);
+                                    //XmlSerializer xml = new XmlSerializer(pp.property);
 
-                                    using (MemoryStream mm = new MemoryStream(Encoding.UTF8.GetBytes(str)))
-                                    {
-                                        var ddd = xml.Deserialize(mm);
-                                        pp.x.SetValue(obj, ddd, null);
-                                    }
+                                    //using (MemoryStream mm = new MemoryStream(Encoding.UTF8.GetBytes(str)))
+                                    //{
+                                    //    var ddd = xml.Deserialize(mm);
+                                    //    pp.x.SetValue(obj, ddd, null);
+                                    //}
                                 }
                             }
                         }
