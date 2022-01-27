@@ -13,7 +13,9 @@ namespace QSoft.Ini
     [AttributeUsage(AttributeTargets.Class| AttributeTargets.Property, Inherited = false)]
     public class IniSection : Attribute
     {
+        [Obsolete("Please use IniConvert")]
         public string DefaultSection { set; get; }
+        public string Name { set; get; }
     }
 
 
@@ -40,16 +42,28 @@ namespace QSoft.Ini
         public string Name { set; get; }
     }
 
+    
 
     public static class IniConvert
     {
+        static string GetSectionName(this Type type)
+        {
+            var section = type.GetCustomAttributes(true).FirstOrDefault(x => x is IniSection) as IniSection;
+            return section?.Name ?? type.Name;
+        }
+
+        static string GetSectionKeyName(this PropertyInfo type)
+        {
+            var section = type.GetCustomAttributes(true).FirstOrDefault(x => x is IniSectionKey) as IniSectionKey;
+            return section?.Key ?? type.Name;
+        }
+
         static public string SerializeObject(object obj)
         {
-            var section1 = obj.GetType().GetCustomAttributes(true).FirstOrDefault(x => x.GetType() == typeof(IniSection)) as IniSection;
             Dictionary<string, Dictionary<string, string>> sections = new Dictionary<string, Dictionary<string, string>>();
             List<string> sectionlist = new List<string>();
 
-            Pack(obj, section1 == null ? obj.GetType().Name : section1.DefaultSection, sections, sectionlist);
+            Pack(obj, obj.GetType().GetSectionName(), sections, sectionlist);
 
             StringBuilder strb = new StringBuilder();
             foreach (var section in sectionlist)
@@ -88,6 +102,8 @@ namespace QSoft.Ini
             return str;
         }
 
+
+
         static void Pack(object obj, string section_name, Dictionary<string, Dictionary<string, string>> sections, List<string> sectionlist)
         {
             if (sections.ContainsKey(section_name) == false)
@@ -95,9 +111,9 @@ namespace QSoft.Ini
                 sectionlist.Add(section_name);
                 sections[section_name] = new Dictionary<string, string>();
             }
-            var pps = obj.GetType().GetProperties().Where(x => x.CanRead == true)
+            var pps = obj.GetType().GetProperties()
                 .Select(x => new { attrs = x.GetCustomAttributes(true), property = x, typecode = Type.GetTypeCode(x.PropertyType) })
-                .Where(x => x.attrs.Any(y => y.GetType() == typeof(IniIgnore)) == false);
+                .Where(x => x.property.CanRead == true && x.attrs.Any(y => y is IniIgnore) == false);
             foreach (var pp in pps)
             {
                 switch (pp.typecode)
@@ -114,7 +130,7 @@ namespace QSoft.Ini
                                     {
                                         continue;
                                     }
-                                    var iniarray = pp.attrs.FirstOrDefault(x => x.GetType() == typeof(IniArray)) as IniArray;
+                                    var iniarray = pp.attrs.FirstOrDefault(x => x is IniArray) as IniArray;
                                     if (iniarray == null)
                                     {
                                         string xml = ToXml(pp.property.GetValue(obj, null));
@@ -148,9 +164,9 @@ namespace QSoft.Ini
                                     if (subobj_section != null)
                                     {
                                         string sub_name = pp.property.Name;
-                                        if(string.IsNullOrEmpty(subobj_section.DefaultSection) == false)
+                                        if(string.IsNullOrEmpty(subobj_section.Name) == false)
                                         {
-                                            sub_name = subobj_section.DefaultSection;
+                                            sub_name = subobj_section.Name;
                                         }
                                         Pack(subobj, sub_name, sections, sectionlist);
                                     }
@@ -174,7 +190,7 @@ namespace QSoft.Ini
                             var subobj = pp.property.GetValue(obj, null);
                             if(subobj != null)
                             {
-                                sections[section_name][pp.property.Name] = $"{pp.property.GetValue(obj, null)}";
+                                sections[section_name][pp.property.GetSectionKeyName()] = $"{pp.property.GetValue(obj, null)}";
                             }
                         }
                         break;
@@ -187,12 +203,11 @@ namespace QSoft.Ini
             var dics = Parse(ini);
             var type = typeof(T);
             var oi = type.GetCustomAttributes(true).FirstOrDefault(x => x == typeof(IniSection));
-            var attr_section = (type.GetCustomAttributes(true).FirstOrDefault(x => x.GetType() == typeof(IniSection)) as IniSection)?.DefaultSection;
-            var section_name = attr_section ?? type.Name;
+            var section_name = type.GetSectionName();
             if (dics.ContainsKey(section_name) == true)
             {
                 var obj = Activator.CreateInstance<T>();
-                UnPack(dics, obj, attr_section ?? type.Name);
+                UnPack(dics, obj, section_name);
                 return obj;
             }
 
@@ -221,9 +236,9 @@ namespace QSoft.Ini
             foreach (var pp in pps)
             {
                 string str = null;
-                if (ini[section_name].ContainsKey(pp.x.Name) == true)
+                if (ini[section_name].ContainsKey(pp.x.GetSectionKeyName()) == true)
                 {
-                    str = ini[section_name][pp.x.Name];
+                    str = ini[section_name][pp.x.GetSectionKeyName()];
                 }
 
                 switch (pp.typecode)
@@ -244,7 +259,7 @@ namespace QSoft.Ini
                                         pp.x.SetValue(obj, ienumable, null);
                                     }
                                     MethodInfo method = ienumable.GetType().GetMethod("Add");
-                                    var iniarray = pp.attrs.FirstOrDefault(x => x.GetType() == typeof(IniArray)) as IniArray;
+                                    var iniarray = pp.attrs.FirstOrDefault(x => x is IniArray) as IniArray;
                                     if (iniarray == null)
                                     {
                                         var ddd = FromXml(str, pp.property);
@@ -281,15 +296,15 @@ namespace QSoft.Ini
                             }
                             else
                             {
-                                var subobj_section = pp.attrs.FirstOrDefault(x => x.GetType() == typeof(IniSection)) as IniSection;
+                                var subobj_section = pp.attrs.FirstOrDefault(x => x is IniSection) as IniSection;
                                 
                                 if (subobj_section != null)
                                 {
 
                                     var subobj_name = pp.x.Name;
-                                    if(string.IsNullOrEmpty(subobj_section.DefaultSection) == false)
+                                    if(string.IsNullOrEmpty(subobj_section.Name) == false)
                                     {
-                                        subobj_name = subobj_section.DefaultSection;
+                                        subobj_name = subobj_section.Name;
                                     }
                                     var subobj = Activator.CreateInstance(pp.property);
                                     UnPack(ini, subobj, subobj_name);
