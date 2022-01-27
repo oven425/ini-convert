@@ -46,6 +46,7 @@ Setting setting = new Setting()
             File.WriteAllText("setting.ini", ini_str);
             var inides = IniConvert.DeserializeObject<Setting>(ini_str);
 
+
         }
     }
 
