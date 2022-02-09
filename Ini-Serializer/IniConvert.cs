@@ -32,7 +32,7 @@ namespace QSoft.Ini
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
     public class IniIgnore:Attribute
     {
-
+        public bool IsVisible { set; get; }
     }
 
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
@@ -42,7 +42,74 @@ namespace QSoft.Ini
         public string Name { set; get; }
     }
 
-    
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
+    public class IniComment : Attribute
+    {
+        public string Message { set; get; }
+    }
+
+    class Content
+    {
+        public string Comment { set; get; }
+        public string Key { set; get; }
+        public string Value { set; get; }
+    }
+
+    class Section
+    {
+        public string Comment { set; get; }
+        public List<Content> Content { set; get; }
+
+    }
+
+    public class ListDictonary<TKey, TValue> : Dictionary<TKey, TValue>
+    {
+        List<TKey> m_Keys = new List<TKey>();
+        public new void Add(TKey key, TValue value)
+        {
+            this.CheckKey(key);
+            base.Add(key, value);
+        }
+
+        public new void Clear()
+        {
+            m_Keys.Clear();
+            base.Clear();
+        }
+
+        public new TValue this[TKey key]
+        {
+            set
+            {
+                this.CheckKey(key);
+                base[key] = value;
+            }
+            get
+            {
+                return base[key];
+            }
+        }
+
+        public new IEnumerable<TValue> Values
+        {
+            get
+            {
+                foreach(var oo in this.m_Keys)
+                {
+                    yield return this[oo];
+                }
+            }
+        }
+
+        void CheckKey(TKey key)
+        {
+            if (this.ContainsKey(key) == false)
+            {
+                this.m_Keys.Add(key);
+            }
+        }
+
+    }
 
     public static class IniConvert
     {
@@ -62,15 +129,22 @@ namespace QSoft.Ini
         {
             Dictionary<string, Dictionary<string, string>> sections = new Dictionary<string, Dictionary<string, string>>();
             List<string> sectionlist = new List<string>();
-
-            Pack(obj, obj.GetType().GetSectionName(), sections, sectionlist);
+            Dictionary<string, Dictionary<string, string>> comments = new Dictionary<string, Dictionary<string, string>>();
+            Pack(obj, obj.GetType().GetSectionName(), sections, sectionlist, comments);
 
             StringBuilder strb = new StringBuilder();
             foreach (var section in sectionlist)
             {
                 strb.AppendLine($"[{section}]");
+                
                 foreach (var oo in sections[section])
                 {
+                    var comment = comments[section][oo.Key];
+                    if(string.IsNullOrEmpty(comment)==false)
+                    {
+                        strb.Append($"{comment}");
+                    }
+                    
                     strb.AppendLine($"{oo.Key}={oo.Value}");
                 }
                 strb.AppendLine();
@@ -104,12 +178,13 @@ namespace QSoft.Ini
 
 
 
-        static void Pack(object obj, string section_name, Dictionary<string, Dictionary<string, string>> sections, List<string> sectionlist)
+        static void Pack(object obj, string section_name, Dictionary<string, Dictionary<string, string>> sections, List<string> sectionlist, Dictionary<string, Dictionary<string, string>> comments)
         {
             if (sections.ContainsKey(section_name) == false)
             {
                 sectionlist.Add(section_name);
                 sections[section_name] = new Dictionary<string, string>();
+                comments[section_name] = new Dictionary<string, string>();
             }
             var pps = obj.GetType().GetProperties()
                 .Select(x => new { attrs = x.GetCustomAttributes(true), property = x, typecode = Type.GetTypeCode(x.PropertyType) })
@@ -141,7 +216,7 @@ namespace QSoft.Ini
                                         int index = iniarray.BaseIndex;
                                         foreach (var oo in ienumable)
                                         {
-                                            Pack(oo, $"{iniarray.Name??pp.property.Name}_{index++}", sections, sectionlist);
+                                            Pack(oo, $"{iniarray.Name??pp.property.Name}_{index++}", sections, sectionlist, comments);
                                         }
                                     }
                                 }
@@ -168,7 +243,7 @@ namespace QSoft.Ini
                                         {
                                             sub_name = subobj_section.Name;
                                         }
-                                        Pack(subobj, sub_name, sections, sectionlist);
+                                        Pack(subobj, sub_name, sections, sectionlist, comments);
                                     }
                                     else
                                     {
@@ -190,6 +265,14 @@ namespace QSoft.Ini
                             var subobj = pp.property.GetValue(obj, null);
                             if(subobj != null)
                             {
+                                string comment = "";
+                                var comms = pp.attrs.Where(x => x is IniComment);
+                                foreach (var oo in comms)
+                                {
+                                    var comm = oo as IniComment;
+                                    comment = $"{comment};{comm.Message}\r\n";
+                                }
+                                comments[section_name][pp.property.GetSectionKeyName()] = comment;
                                 sections[section_name][pp.property.GetSectionKeyName()] = $"{pp.property.GetValue(obj, null)}";
                             }
                         }

@@ -15,12 +15,12 @@ Setting setting = new Setting()
 {
     IP = "127.0.0.1",
     Port = 88,
-    TestItems1 = new List<TestItem>()
-    {
-        new TestItem(){Exe = "A.exe", Command="qq"},
-        new TestItem(){Exe="B.bat", Command=""},
-        new TestItem(){Exe="taskmgr.exe"}
-    }
+    //TestItems1 = new List<TestItem>()
+    //{
+    //    new TestItem(){Exe = "A.exe", Command="qq"},
+    //    new TestItem(){Exe="B.bat", Command=""},
+    //    new TestItem(){Exe="taskmgr.exe"}
+    //}
 };
 
             //setting.Ftp_1 = new RemoteSetting() { IP = "127.0.0.100", Port = 50, Account = "Allen", Password = "123" };
@@ -50,12 +50,15 @@ Setting setting = new Setting()
         }
     }
 
+[IniComment(Message ="2022/02/02 modify")]
 public class Setting
 {
+    [IniComment(Message = "127.0.0.1 is default")]
+    [IniComment(Message = "Please check it")]
     public string IP { set; get; }
     public int Port { set; get; }
-    [IniArray(Name ="Test")]
-    public List<TestItem> TestItems1 { set; get; }
+    //[IniArray(Name ="Test")]
+    //public List<TestItem> TestItems1 { set; get; }
 }
 
     //[QSoft.Ini.IniSection()]
