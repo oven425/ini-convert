@@ -13,4 +13,4 @@ Port=88
 */
 var deserialize = IniConvert.DeserializeObject<Setting>(ini_str);
 ```
-[More](https://github.com/oven425/QSoft.Ini/wiki/Quick-Start)
+[More](https://github.com/oven425/QSoft.Ini/wiki)
