@@ -4,13 +4,49 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Reflection;
+using System.Linq.Expressions;
 
 namespace ConsoleApp_IniT
 {
+    public class IniBuilder<T>
+    {
+        Dictionary<PropertyInfo, string> m_Items = new Dictionary<PropertyInfo, string>();
+
+
+        public IniPropertyBuilder<TProperty> Property<TProperty>(Expression<Func<T, TProperty>> func)
+        {
+            return new IniPropertyBuilder<TProperty>();
+        }
+    }
+
+    public class IniPropertyBuilder<T>
+    {
+        string m_Annotation = "";
+        string m_PropertyName = "";
+        bool m_Ignore = false;
+        public IniPropertyBuilder<T> HasPropertyName(string data)
+        {
+            return this;
+        }
+        public IniPropertyBuilder<T> HasAnnotation(string data)
+        {
+            return this;
+        }
+        public IniPropertyBuilder<T> HasIgnore()
+        {
+            return this;
+        }
+
+    }
     class Program
     {
         static void Main(string[] args)
         {
+
+            IniBuilder<Setting> model = new IniBuilder<Setting>();
+            var pd = model.Property(x => x.Port);
+
+
 Setting setting = new Setting()
 {
     IP = "127.0.0.1",
@@ -42,6 +78,7 @@ Setting setting = new Setting()
             //};
 
 
+
             string ini_str = IniConvert.SerializeObject(setting);
             File.WriteAllText("setting.ini", ini_str);
             var inides = IniConvert.DeserializeObject<Setting>(ini_str);
@@ -50,11 +87,11 @@ Setting setting = new Setting()
         }
     }
 
-[IniComment(Message ="2022/02/02 modify")]
+[IniAnnotation(Annotation = "2022/02/02 modify")]
 public class Setting
 {
-    [IniComment(Message = "127.0.0.1 is default")]
-    [IniComment(Message = "Please check it")]
+    [IniAnnotation(Annotation = "127.0.0.1 is default")]
+    [IniAnnotation(Annotation = "Please check it")]
     public string IP { set; get; }
     public int Port { set; get; }
     //[IniArray(Name ="Test")]

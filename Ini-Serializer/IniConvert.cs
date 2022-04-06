@@ -10,6 +10,7 @@ using System.Xml;
 
 namespace QSoft.Ini
 {
+    
     [AttributeUsage(AttributeTargets.Class| AttributeTargets.Property, Inherited = false)]
     public class IniSection : Attribute
     {
@@ -43,9 +44,9 @@ namespace QSoft.Ini
     }
 
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
-    public class IniComment : Attribute
+    public class IniAnnotation : Attribute
     {
-        public string Message { set; get; }
+        public string Annotation { set; get; }
     }
 
     class Content
@@ -266,11 +267,11 @@ namespace QSoft.Ini
                             if(subobj != null)
                             {
                                 string comment = "";
-                                var comms = pp.attrs.Where(x => x is IniComment);
+                                var comms = pp.attrs.Where(x => x is IniAnnotation);
                                 foreach (var oo in comms)
                                 {
-                                    var comm = oo as IniComment;
-                                    comment = $"{comment};{comm.Message}\r\n";
+                                    var comm = oo as IniAnnotation;
+                                    comment = $"{comment};{comm.Annotation}\r\n";
                                 }
                                 comments[section_name][pp.property.GetSectionKeyName()] = comment;
                                 sections[section_name][pp.property.GetSectionKeyName()] = $"{pp.property.GetValue(obj, null)}";
