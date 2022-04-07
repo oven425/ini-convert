@@ -5,47 +5,164 @@ using System.IO;
 using System.Text;
 using System.Reflection;
 using System.Linq.Expressions;
+using System.Linq;
 
 namespace ConsoleApp_IniT
 {
-    public class IniBuilder<T>
+    public class IniModelBuilder<T> where T:class
     {
-        Dictionary<PropertyInfo, string> m_Items = new Dictionary<PropertyInfo, string>();
+        string m_Annotation = "";
+        Dictionary<string, PropertyInfo> m_Items;
+        public Dictionary<string, IniPropertyBuilder> PropertyBuilds { private set; get; } = new Dictionary<string, IniPropertyBuilder>();
+        public IniModelBuilder()
+        {
+            this.m_Items = typeof(T).GetProperties().ToDictionary(x => x.Name);
+        }
 
+        public IniModelBuilder<T> HasAnnotation(string data)
+        {
+            this.m_Annotation = data;
+            return this;
+        }
 
         public IniPropertyBuilder<TProperty> Property<TProperty>(Expression<Func<T, TProperty>> func)
         {
-            return new IniPropertyBuilder<TProperty>();
+            var aa = func.Body as MemberExpression;
+            if (aa.Expression.Type == typeof(T))
+            {
+                if (m_Items.ContainsKey(aa.Member.Name) == true)
+                {
+                    var pb = new IniPropertyBuilder<TProperty>(aa.Member.Name);
+                    this.PropertyBuilds[aa.Member.Name] = pb;
+                    return pb;
+                }
+            }
+            return null;
         }
+
+        public IniPropertyBuilder Property(string name)
+        {
+            if (this.m_Items.ContainsKey(name) == true)
+            {
+                var typedef = typeof(IniPropertyBuilder<>).MakeGenericType(this.m_Items[name].PropertyType);
+                var pb =Activator.CreateInstance(typedef, name) as IniPropertyBuilder;
+                this.PropertyBuilds[name] = pb;
+                return pb;
+            }
+            return null;
+        }
+
     }
 
-    public class IniPropertyBuilder<T>
+    public class IniPropertyConvert<TSource, TDest>
     {
-        string m_Annotation = "";
-        string m_PropertyName = "";
-        bool m_Ignore = false;
-        public IniPropertyBuilder<T> HasPropertyName(string data)
+        public void Write(TSource src, TDest dst)
         {
+
+        }
+
+        public void Read(TSource src, TDest dst)
+        {
+
+        }
+    }
+
+    //https://github.com/dotnet/efcore/blob/main/src/EFCore/Metadata/Builders/PropertyBuilder.cs
+    public class IniPropertyBuilder
+    {
+        public string Annotation { protected set; get; }
+        public string PropertyName { protected set; get; }
+        public bool Ignore { protected set; get; }
+        public int BaseIndex { protected set; get; }
+        public IniPropertyBuilder()
+        {
+
+        }
+        public IniPropertyBuilder(string name)
+        {
+            this.PropertyName = name;
+        }
+        public IniPropertyBuilder HasPropertyName(string data)
+        {
+            this.PropertyName = data;
             return this;
         }
-        public IniPropertyBuilder<T> HasAnnotation(string data)
+        public IniPropertyBuilder HasAnnotation(string data)
         {
+            this.Annotation = data;
             return this;
         }
-        public IniPropertyBuilder<T> HasIgnore()
+        public IniPropertyBuilder HasIgnore()
         {
+            this.Ignore = true;
             return this;
         }
 
+        public IniPropertyBuilder HasArray(string name, int baseindex=0)
+        {
+            this.PropertyName = name;
+            this.BaseIndex = baseindex;
+            return this;
+        }
     }
+
+    public class IniPropertyBuilder<T> : IniPropertyBuilder
+    {
+        public IniPropertyBuilder(string name)
+            : base(name)
+        {
+
+        }
+
+        public IniPropertyBuilder<T> HasConvert<T1>(Func<T, T1> write, Func<T1, T> read)
+        {
+            return this;
+        }
+    }
+
     class Program
     {
+        static void Acc(string name, Type type)
+        {
+            name = "123";
+            type = typeof(int);
+        }
         static void Main(string[] args)
         {
+            IniModelBuilder<Setting> model = new IniModelBuilder<Setting>();
+            var modela = typeof(Setting).GetCustomAttribute(typeof(IniAnnotation));
+            model.HasAnnotation((modela as IniAnnotation)?.Annotation);
+            foreach (var pp in typeof(Setting).GetProperties())
+            {
+                //model.Property(x => x.Port).HasConvert(x => x.ToString(), x => int.Parse(x));
+                //model.TestAction<Type>(Acc);
+                //model.Property((string name, int a) => { name = pp.Name; a = 1; });
+                //var pb1 = model.Property(x=> { pp.Name; pp.PropertyType; });
+                var pb = model.Property(pp.Name);
+                var attrs = pp.GetCustomAttributes();
+                foreach (var attr in attrs)
+                {
+                    if (attr is IniIgnore)
+                    {
+                        pb.HasIgnore();
+                    }
+                    else if (attr is IniAnnotation)
+                    {
+                        pb.HasAnnotation((attr as IniAnnotation)?.Annotation);
+                    }
+                    else if (attr is IniSection)
+                    {
+                        pb.HasPropertyName((attr as IniSection)?.Name);
+                    }
+                    else if (attr is IniArray)
+                    {
+                        var arry = attr as IniArray;
+                        pb.HasArray(arry.Name, arry.BaseIndex);
+                    }
+                }
+            }
 
-            IniBuilder<Setting> model = new IniBuilder<Setting>();
-            var pd = model.Property(x => x.Port);
-
+            var pps = model.PropertyBuilds.Where(x => x.Value.Ignore == false);
 
 Setting setting = new Setting()
 {
@@ -94,9 +211,9 @@ public class Setting
     [IniAnnotation(Annotation = "Please check it")]
     public string IP { set; get; }
     public int Port { set; get; }
-    //[IniArray(Name ="Test")]
-    //public List<TestItem> TestItems1 { set; get; }
-}
+        //[IniArray(Name = "Test")]
+        //public List<TestItem> TestItems1 { set; get; }
+    }
 
     //[QSoft.Ini.IniSection()]
     //public class Setting
