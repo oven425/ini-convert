@@ -52,19 +52,17 @@ namespace ConsoleApp_IniT
             return null;
         }
 
-    }
-
-    public class IniPropertyConvert<TSource, TDest>
-    {
-        public void Write(TSource src, TDest dst)
+        public IniPropertyBuilder<TProperty> Property<TProperty>(string name)
         {
-
+            if (this.m_Items.ContainsKey(name) == true)
+            {
+                var pb = new IniPropertyBuilder<TProperty>(name);
+                this.PropertyBuilds[name] = pb;
+                return pb;
+            }
+            return null;
         }
 
-        public void Read(TSource src, TDest dst)
-        {
-
-        }
     }
 
     //https://github.com/dotnet/efcore/blob/main/src/EFCore/Metadata/Builders/PropertyBuilder.cs
@@ -104,6 +102,15 @@ namespace ConsoleApp_IniT
             this.BaseIndex = baseindex;
             return this;
         }
+
+        public IniPropertyBuilder HasConvert(Func<object, object> write, Func<object, object> read)
+        {
+            this.m_ConvertTo = write;
+            this.m_ConvertBack = read;
+            return this;
+        }
+        protected Func<object, object> m_ConvertTo;
+        protected Func<object, object> m_ConvertBack;
     }
 
     public class IniPropertyBuilder<T> : IniPropertyBuilder
@@ -114,8 +121,10 @@ namespace ConsoleApp_IniT
 
         }
 
-        public IniPropertyBuilder<T> HasConvert<T1>(Func<T, T1> write, Func<T1, T> read)
+        public IniPropertyBuilder<T> HasConvert<T1>(Expression<Func<T, T1>> write, Expression<Func<T1, T>> read)
         {
+            var method = write.Compile();
+            //m_ConvertTo = method;
             return this;
         }
     }
@@ -130,16 +139,17 @@ namespace ConsoleApp_IniT
         static void Main(string[] args)
         {
             IniModelBuilder<Setting> model = new IniModelBuilder<Setting>();
-            var modela = typeof(Setting).GetCustomAttribute(typeof(IniAnnotation));
+            var modela = typeof(Setting).GetCustomAttributes(typeof(IniAnnotation), true).FirstOrDefault();
             model.HasAnnotation((modela as IniAnnotation)?.Annotation);
             foreach (var pp in typeof(Setting).GetProperties())
             {
-                //model.Property(x => x.Port).HasConvert(x => x.ToString(), x => int.Parse(x));
+                model.Property(x => x.Port).HasConvert(x => x.ToString(), x => int.Parse(x));
                 //model.TestAction<Type>(Acc);
                 //model.Property((string name, int a) => { name = pp.Name; a = 1; });
                 //var pb1 = model.Property(x=> { pp.Name; pp.PropertyType; });
                 var pb = model.Property(pp.Name);
-                var attrs = pp.GetCustomAttributes();
+                pb.HasConvert(x => x.ToString(), x => int.Parse(x.ToString()));
+                var attrs = pp.GetCustomAttributes(true);
                 foreach (var attr in attrs)
                 {
                     if (attr is IniIgnore)
