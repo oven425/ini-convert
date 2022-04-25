@@ -120,10 +120,20 @@ namespace ConsoleApp_IniT
         {
 
         }
-
-        public IniPropertyBuilder<T> HasConvert<T1>(Expression<Func<T, T1>> write, Expression<Func<T1, T>> read)
+        LambdaExpression m_ConvertBack;
+        Delegate m_Convert;
+        Type m_In;
+        Type m_Out;
+        public IniPropertyBuilder<T> HasConvert<T1>(Expression<Func<T, T1>> convert, Expression<Func<T1, T>> convertback)
         {
-            var method = write.Compile();
+            this.m_Convert = convert.Compile();
+            var sss = m_Convert.DynamicInvoke(11);
+            this.m_In = typeof(T);
+            this.m_Out = typeof(T1);
+
+            var functype = typeof(Func<,>).MakeGenericType(convert.Type.GetGenericArguments());
+            
+            var method = convert.Compile();
             //m_ConvertTo = method;
             return this;
         }
@@ -141,6 +151,9 @@ namespace ConsoleApp_IniT
             IniModelBuilder<Setting> model = new IniModelBuilder<Setting>();
             var modela = typeof(Setting).GetCustomAttributes(typeof(IniAnnotation), true).FirstOrDefault();
             model.HasAnnotation((modela as IniAnnotation)?.Annotation);
+            model.Property(x => x.Port)
+                .HasConvert(x => $"{x:X}", x => int.Parse(x))
+                .HasAnnotation("Port default is 3333");
             foreach (var pp in typeof(Setting).GetProperties())
             {
                 model.Property(x => x.Port).HasConvert(x => x.ToString(), x => int.Parse(x));
