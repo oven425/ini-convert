@@ -143,10 +143,6 @@
       <Project>{7159ceaa-5bd9-4981-9acf-643cba88268c}</Project>
       <Name>QSoft.Ini</Name>
     </ProjectReference>
-    <ProjectReference Include="..\QSoft.IniTests\QSoft.IniTests.csproj">
-      <Project>{e5163c8c-67a5-49fe-9fe8-64cd1986ea94}</Project>
-      <Name>QSoft.IniTests</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

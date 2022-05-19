@@ -14,6 +14,7 @@ namespace ConsoleApp_IniT
         string m_Annotation = "";
         Dictionary<string, PropertyInfo> m_Items;
         public Dictionary<string, IniPropertyBuilder> PropertyBuilds { private set; get; } = new Dictionary<string, IniPropertyBuilder>();
+        //List<IniModelBuilder>
         public IniModelBuilder()
         {
             this.m_Items = typeof(T).GetProperties().ToDictionary(x => x.Name);
@@ -25,15 +26,30 @@ namespace ConsoleApp_IniT
             return this;
         }
 
-        public IniPropertyBuilder<TProperty> Property<TProperty>(Expression<Func<T, TProperty>> func)
+        public IniPropertyBuilder<TProperty> Property<TProperty>(Expression<Func<T, TProperty>> func) 
         {
             var aa = func.Body as MemberExpression;
             if (aa.Expression.Type == typeof(T))
             {
                 if (m_Items.ContainsKey(aa.Member.Name) == true)
                 {
-                    var pb = new IniPropertyBuilder<TProperty>(aa.Member.Name);
+                    var pb = new IniPropertyBuilder<TProperty>(aa.Member as PropertyInfo);
                     this.PropertyBuilds[aa.Member.Name] = pb;
+                    return pb;
+                }
+            }
+            return null;
+        }
+
+        public IniModelBuilder<TProperty> Section<TProperty>(Expression<Func<T, TProperty>> func) where TProperty : class
+        {
+            var aa = func.Body as MemberExpression;
+            if (aa.Expression.Type == typeof(T))
+            {
+                if (m_Items.ContainsKey(aa.Member.Name) == true)
+                {
+
+                    var pb = new IniModelBuilder<TProperty>();
                     return pb;
                 }
             }
@@ -45,7 +61,7 @@ namespace ConsoleApp_IniT
             if (this.m_Items.ContainsKey(name) == true)
             {
                 var typedef = typeof(IniPropertyBuilder<>).MakeGenericType(this.m_Items[name].PropertyType);
-                var pb =Activator.CreateInstance(typedef, name) as IniPropertyBuilder;
+                var pb =Activator.CreateInstance(typedef, this.m_Items[name]) as IniPropertyBuilder;
                 this.PropertyBuilds[name] = pb;
                 return pb;
             }
@@ -56,7 +72,7 @@ namespace ConsoleApp_IniT
         {
             if (this.m_Items.ContainsKey(name) == true)
             {
-                var pb = new IniPropertyBuilder<TProperty>(name);
+                var pb = new IniPropertyBuilder<TProperty>(this.m_Items[name]);
                 this.PropertyBuilds[name] = pb;
                 return pb;
             }
@@ -69,20 +85,22 @@ namespace ConsoleApp_IniT
     public class IniPropertyBuilder
     {
         public string Annotation { protected set; get; }
-        public string PropertyName { protected set; get; }
+        public PropertyInfo Property { protected set; get; }
+        public string Name { set; get; }
         public bool Ignore { protected set; get; }
         public int BaseIndex { protected set; get; }
         public IniPropertyBuilder()
         {
 
         }
-        public IniPropertyBuilder(string name)
+        public IniPropertyBuilder(PropertyInfo property)
         {
-            this.PropertyName = name;
+            this.Property = Property;
+            this.Name = Property?.Name;
         }
         public IniPropertyBuilder HasPropertyName(string data)
         {
-            this.PropertyName = data;
+            this.Name = data;
             return this;
         }
         public IniPropertyBuilder HasAnnotation(string data)
@@ -98,10 +116,11 @@ namespace ConsoleApp_IniT
 
         public IniPropertyBuilder HasArray(string name, int baseindex=0)
         {
-            this.PropertyName = name;
+            this.Name = name;
             this.BaseIndex = baseindex;
             return this;
         }
+
 
         public IniPropertyBuilder HasConvert(Func<object, object> write, Func<object, object> read)
         {
@@ -115,26 +134,19 @@ namespace ConsoleApp_IniT
 
     public class IniPropertyBuilder<T> : IniPropertyBuilder
     {
-        public IniPropertyBuilder(string name)
-            : base(name)
+        public IniPropertyBuilder(PropertyInfo property)
+            : base(property)
         {
 
         }
-        LambdaExpression m_ConvertBack;
+        Delegate m_ConvertBack;
         Delegate m_Convert;
-        Type m_In;
-        Type m_Out;
+
         public IniPropertyBuilder<T> HasConvert<T1>(Expression<Func<T, T1>> convert, Expression<Func<T1, T>> convertback)
         {
             this.m_Convert = convert.Compile();
-            var sss = m_Convert.DynamicInvoke(11);
-            this.m_In = typeof(T);
-            this.m_Out = typeof(T1);
+            this.m_ConvertBack = convertback.Compile();
 
-            var functype = typeof(Func<,>).MakeGenericType(convert.Type.GetGenericArguments());
-            
-            var method = convert.Compile();
-            //m_ConvertTo = method;
             return this;
         }
     }
@@ -149,17 +161,13 @@ namespace ConsoleApp_IniT
         static void Main(string[] args)
         {
             IniModelBuilder<Setting> model = new IniModelBuilder<Setting>();
-            var modela = typeof(Setting).GetCustomAttributes(typeof(IniAnnotation), true).FirstOrDefault();
-            model.HasAnnotation((modela as IniAnnotation)?.Annotation);
             model.Property(x => x.Port)
                 .HasConvert(x => $"{x:X}", x => int.Parse(x))
                 .HasAnnotation("Port default is 3333");
+            model.Section(x => x.FTP);
             foreach (var pp in typeof(Setting).GetProperties())
             {
                 model.Property(x => x.Port).HasConvert(x => x.ToString(), x => int.Parse(x));
-                //model.TestAction<Type>(Acc);
-                //model.Property((string name, int a) => { name = pp.Name; a = 1; });
-                //var pb1 = model.Property(x=> { pp.Name; pp.PropertyType; });
                 var pb = model.Property(pp.Name);
                 pb.HasConvert(x => x.ToString(), x => int.Parse(x.ToString()));
                 var attrs = pp.GetCustomAttributes(true);
@@ -185,7 +193,7 @@ namespace ConsoleApp_IniT
                 }
             }
 
-            var pps = model.PropertyBuilds.Where(x => x.Value.Ignore == false);
+            
 
 Setting setting = new Setting()
 {
@@ -198,6 +206,13 @@ Setting setting = new Setting()
     //    new TestItem(){Exe="taskmgr.exe"}
     //}
 };
+
+            var pps = model.PropertyBuilds.Where(x => x.Value.Ignore == false);
+            StringBuilder strb = new StringBuilder();
+            foreach (var pp in pps)
+            {
+                pp.Value.Property.GetValue(setting, null);
+            }
 
             //setting.Ftp_1 = new RemoteSetting() { IP = "127.0.0.100", Port = 50, Account = "Allen", Password = "123" };
             //setting.FTP_Log = new RemoteSetting() { IP = "192.168.10.100", Port = 96, Account = "Julia", Password = "456" };
@@ -234,6 +249,7 @@ public class Setting
     [IniAnnotation(Annotation = "Please check it")]
     public string IP { set; get; }
     public int Port { set; get; }
+    public RemoteSetting FTP { set; get; }
         //[IniArray(Name = "Test")]
         //public List<TestItem> TestItems1 { set; get; }
     }
