@@ -9,20 +9,40 @@ using System.Linq;
 
 namespace ConsoleApp_IniT
 {
-    public class IniModelBuilder<T> where T:class
+    public interface IniString
     {
-        string m_Annotation = "";
+        string WriteToString(object obj);
+    }
+
+    public class IniModelSetting
+    {
+        public string Annotation { set; get; }
+        public string SectionName { set; get; }
+    }
+
+    public class IniModelSetting<T>: IniModelSetting
+    {
+        public IniModelSetting()
+        {
+            this.SectionName = typeof(T).Name;
+        }
+    }
+
+    public class IniModelBuilder<T> : IniString where T:class
+    {
         Dictionary<string, PropertyInfo> m_Items;
+        Dictionary<string, IniString> m_Setions = new Dictionary<string, IniString>();
         public Dictionary<string, IniPropertyBuilder> PropertyBuilds { private set; get; } = new Dictionary<string, IniPropertyBuilder>();
-        //List<IniModelBuilder>
+        List<IniString> m_IniStrings = new List<IniString>();
         public IniModelBuilder()
         {
             this.m_Items = typeof(T).GetProperties().ToDictionary(x => x.Name);
         }
 
-        public IniModelBuilder<T> HasAnnotation(string data)
+        Action<IniModelSetting> m_SettingAction;
+        public IniModelBuilder<T> useSetting(Action<IniModelSetting> action)
         {
-            this.m_Annotation = data;
+            this.m_SettingAction = action;
             return this;
         }
 
@@ -46,11 +66,19 @@ namespace ConsoleApp_IniT
             var aa = func.Body as MemberExpression;
             if (aa.Expression.Type == typeof(T))
             {
-                if (m_Items.ContainsKey(aa.Member.Name) == true)
+                if (this.m_Setions.ContainsKey(aa.Member.Name) == false)
                 {
 
                     var pb = new IniModelBuilder<TProperty>();
+                    this.m_Setions.Add(aa.Member.Name, pb);
+                    this.m_IniStrings.Add(pb);
                     return pb;
+                }
+                else
+                {
+                    var o1 = this.m_Setions[aa.Member.Name];
+                    var o2 = o1 as IniModelBuilder<TProperty>;
+                    return o2;
                 }
             }
             return null;
@@ -79,10 +107,53 @@ namespace ConsoleApp_IniT
             return null;
         }
 
+
+        public string WriteToString(object obj)
+        {
+            StringBuilder strb = new StringBuilder();
+            IniModelSetting<T> setionsetting = new IniModelSetting<T>();
+
+            this.m_SettingAction?.Invoke(setionsetting);
+            if(string.IsNullOrEmpty(setionsetting.Annotation)==false)
+            {
+                StringReader sr = new StringReader(setionsetting.Annotation);
+                while(true)
+                {
+                    var line = sr.ReadLine();
+                    if(string.IsNullOrEmpty(line)==false)
+                    {
+                        strb.AppendLine($";{line}");
+                    }
+                    if(line == null)
+                    {
+                        break;
+                    }
+                }
+            }
+            strb.AppendLine($"[{setionsetting.SectionName}]");
+           foreach (var item in this.m_Items)
+            {
+                var oo = item.Value.GetValue(obj, null);
+                if(this.PropertyBuilds.ContainsKey(item.Key) == true)
+                {
+                    var itemstr = this.PropertyBuilds[item.Key].WriteToString(oo);
+                    strb.AppendLine(itemstr);
+                }
+                else
+                {
+                    strb.AppendLine($"{item.Key}={oo}");
+                }
+
+            }
+            
+
+
+            return strb.ToString();
+        }
     }
 
     //https://github.com/dotnet/efcore/blob/main/src/EFCore/Metadata/Builders/PropertyBuilder.cs
-    public class IniPropertyBuilder
+    public class IniPropertyBuilder : IniString
     {
         public string Annotation { protected set; get; }
         public PropertyInfo Property { protected set; get; }
@@ -95,8 +166,8 @@ namespace ConsoleApp_IniT
         }
         public IniPropertyBuilder(PropertyInfo property)
         {
-            this.Property = Property;
-            this.Name = Property?.Name;
+            this.Property = property;
+            this.Name = this.Property?.Name;
         }
         public IniPropertyBuilder HasPropertyName(string data)
         {
@@ -128,6 +199,18 @@ namespace ConsoleApp_IniT
             this.m_ConvertBack = read;
             return this;
         }
+
+        public string WriteToString(object obj)
+        {
+            StringBuilder strb = new StringBuilder();
+            if(string.IsNullOrEmpty(this.Annotation)==false)
+            {
+                strb.AppendLine($";{this.Annotation}");
+            }
+            strb.Append($"{this.Name}={obj}");
+            return strb.ToString();
+        }
+
         protected Func<object, object> m_ConvertTo;
         protected Func<object, object> m_ConvertBack;
     }
@@ -161,37 +244,43 @@ namespace ConsoleApp_IniT
         static void Main(string[] args)
         {
             IniModelBuilder<Setting> model = new IniModelBuilder<Setting>();
+            model.useSetting(x =>
+                {
+                    x.Annotation = "123";
+                    x.SectionName = "QQSeting";
+                });
             model.Property(x => x.Port)
                 .HasConvert(x => $"{x:X}", x => int.Parse(x))
                 .HasAnnotation("Port default is 3333");
-            model.Section(x => x.FTP);
-            foreach (var pp in typeof(Setting).GetProperties())
-            {
-                model.Property(x => x.Port).HasConvert(x => x.ToString(), x => int.Parse(x));
-                var pb = model.Property(pp.Name);
-                pb.HasConvert(x => x.ToString(), x => int.Parse(x.ToString()));
-                var attrs = pp.GetCustomAttributes(true);
-                foreach (var attr in attrs)
-                {
-                    if (attr is IniIgnore)
-                    {
-                        pb.HasIgnore();
-                    }
-                    else if (attr is IniAnnotation)
-                    {
-                        pb.HasAnnotation((attr as IniAnnotation)?.Annotation);
-                    }
-                    else if (attr is IniSection)
-                    {
-                        pb.HasPropertyName((attr as IniSection)?.Name);
-                    }
-                    else if (attr is IniArray)
-                    {
-                        var arry = attr as IniArray;
-                        pb.HasArray(arry.Name, arry.BaseIndex);
-                    }
-                }
-            }
+            model.Section(x => x.FTP).Property(x => x.IP).HasAnnotation("FTP_IP");
+            model.Section(x => x.FTP).Property(x => x.Port).HasAnnotation("FTP_PORT");
+            //foreach (var pp in typeof(Setting).GetProperties())
+            //{
+            //    model.Property(x => x.Port).HasConvert(x => x.ToString(), x => int.Parse(x));
+            //    var pb = model.Property(pp.Name);
+            //    pb.HasConvert(x => x.ToString(), x => int.Parse(x.ToString()));
+            //    var attrs = pp.GetCustomAttributes(true);
+            //    foreach (var attr in attrs)
+            //    {
+            //        if (attr is IniIgnore)
+            //        {
+            //            pb.HasIgnore();
+            //        }
+            //        else if (attr is IniAnnotation)
+            //        {
+            //            pb.HasAnnotation((attr as IniAnnotation)?.Annotation);
+            //        }
+            //        else if (attr is IniSection)
+            //        {
+            //            pb.HasPropertyName((attr as IniSection)?.Name);
+            //        }
+            //        else if (attr is IniArray)
+            //        {
+            //            var arry = attr as IniArray;
+            //            pb.HasArray(arry.Name, arry.BaseIndex);
+            //        }
+            //    }
+            //}
 
             
 
@@ -208,6 +297,7 @@ Setting setting = new Setting()
 };
 
             var pps = model.PropertyBuilds.Where(x => x.Value.Ignore == false);
+            var inistr = model.WriteToString(setting);
             StringBuilder strb = new StringBuilder();
             foreach (var pp in pps)
             {

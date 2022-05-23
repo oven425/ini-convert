@@ -112,6 +112,11 @@ namespace QSoft.Ini
 
     }
 
+    interface IniString
+    {
+        string WriteToString();
+    }
+
     public static class IniConvert
     {
         static string GetSectionName(this Type type)
