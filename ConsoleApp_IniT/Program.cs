@@ -6,6 +6,7 @@ using System.Text;
 using System.Reflection;
 using System.Linq.Expressions;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace ConsoleApp_IniT
 {
@@ -107,7 +108,6 @@ namespace ConsoleApp_IniT
             return null;
         }
 
-
         public string WriteToString(object obj)
         {
             StringBuilder strb = new StringBuilder();
@@ -131,22 +131,34 @@ namespace ConsoleApp_IniT
                 }
             }
             strb.AppendLine($"[{setionsetting.SectionName}]");
-           foreach (var item in this.m_Items)
+            foreach (var item in this.m_Items)
             {
-                var oo = item.Value.GetValue(obj, null);
-                if(this.PropertyBuilds.ContainsKey(item.Key) == true)
+                var typecode = Type.GetTypeCode(item.Value.PropertyType);
+                if(item.Value.PropertyType.IsGenericType==true && item.Value.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
-                    var itemstr = this.PropertyBuilds[item.Key].WriteToString(oo);
-                    strb.AppendLine(itemstr);
+                    typecode = Type.GetTypeCode(item.Value.PropertyType.GetGenericArguments()[0]);
                 }
-                else
+                if(typecode != TypeCode.Object)
                 {
-                    strb.AppendLine($"{item.Key}={oo}");
+                    var oo = item.Value.GetValue(obj, null);
+                    if (this.PropertyBuilds.ContainsKey(item.Key) == true)
+                    {
+                        var itemstr = this.PropertyBuilds[item.Key].WriteToString(oo);
+                        strb.AppendLine(itemstr);
+                    }
+                    else
+                    {
+                        strb.AppendLine($"{item.Key}={oo}");
+                    }
                 }
-
             }
             
-
+            foreach(var model in this.m_Setions)
+            {
+                var oo = this.m_Items[model.Key].GetValue(obj, null);
+                var itemstr = model.Value.WriteToString(oo);
+                strb.AppendLine(itemstr);
+            }
 
             return strb.ToString();
         }
@@ -202,6 +214,10 @@ namespace ConsoleApp_IniT
 
         public string WriteToString(object obj)
         {
+            if(this.Ignore == true)
+            {
+                return "";
+            }
             StringBuilder strb = new StringBuilder();
             if(string.IsNullOrEmpty(this.Annotation)==false)
             {
@@ -234,26 +250,68 @@ namespace ConsoleApp_IniT
         }
     }
 
+
+
+    public class Section
+    {
+        public string Annotation { set; get; }
+        public string Name { set; get; }
+        public Dictionary<string, KeyValue> KeyValues { set; get; } = new Dictionary<string, KeyValue>();
+
+        public static Dictionary<string, Section> Parse(string data)
+        {
+            Dictionary<string, Section> sections = new Dictionary<string, Section>();
+            StringReader sr = new StringReader(data);
+            while(true)
+            {
+                var line = sr.ReadLine();
+                if(string.IsNullOrEmpty(line) == false)
+                {
+                    Regex regex_annotation = new Regex(";");
+                }
+                else
+                {
+                    break;
+                }
+            }
+            return sections;
+        }
+    }
+
+    public class KeyValue
+    {
+        public string Annotation { set; get; }
+        public string Key { set; get; }
+        public string Value { set; get; }
+    }
+
     class Program
     {
-        static void Acc(string name, Type type)
-        {
-            name = "123";
-            type = typeof(int);
-        }
         static void Main(string[] args)
         {
+            Regex regex_annotation = new Regex(";(?<word>)");
+            var regex_match = regex_annotation.Match(";aaaacccc");
+            File.ReadAllText("setting.ini");
             IniModelBuilder<Setting> model = new IniModelBuilder<Setting>();
             model.useSetting(x =>
                 {
                     x.Annotation = "123";
                     x.SectionName = "QQSeting";
                 });
+            
             model.Property(x => x.Port)
                 .HasConvert(x => $"{x:X}", x => int.Parse(x))
                 .HasAnnotation("Port default is 3333");
+            model.Section(x => x.FTP)
+                .useSetting(x =>
+                    {
+                        x.Annotation = "save source code";
+                        x.SectionName = "FTP_AA";
+                    });
             model.Section(x => x.FTP).Property(x => x.IP).HasAnnotation("FTP_IP");
             model.Section(x => x.FTP).Property(x => x.Port).HasAnnotation("FTP_PORT");
+            model.Section(x => x.FTP).Property(x => x.Account).HasIgnore();
+            model.Section(x => x.FTP).Property(x => x.Password).HasIgnore();
             //foreach (var pp in typeof(Setting).GetProperties())
             //{
             //    model.Property(x => x.Port).HasConvert(x => x.ToString(), x => int.Parse(x));
@@ -282,9 +340,9 @@ namespace ConsoleApp_IniT
             //    }
             //}
 
-            
 
-Setting setting = new Setting()
+
+            Setting setting = new Setting()
 {
     IP = "127.0.0.1",
     Port = 88,
@@ -295,9 +353,10 @@ Setting setting = new Setting()
     //    new TestItem(){Exe="taskmgr.exe"}
     //}
 };
-
+            setting.FTP = new RemoteSetting() { IP = "192.168.1.1", Port = 8088, Account = "amind", Password = "admin1" };
             var pps = model.PropertyBuilds.Where(x => x.Value.Ignore == false);
             var inistr = model.WriteToString(setting);
+            File.WriteAllText("setting.ini", inistr);
             StringBuilder strb = new StringBuilder();
             foreach (var pp in pps)
             {
@@ -335,6 +394,7 @@ Setting setting = new Setting()
 [IniAnnotation(Annotation = "2022/02/02 modify")]
 public class Setting
 {
+        public int? Count { set; get; } = 100;
     [IniAnnotation(Annotation = "127.0.0.1 is default")]
     [IniAnnotation(Annotation = "Please check it")]
     public string IP { set; get; }

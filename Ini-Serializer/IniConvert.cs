@@ -49,19 +49,19 @@ namespace QSoft.Ini
         public string Annotation { set; get; }
     }
 
-    class Content
-    {
-        public string Comment { set; get; }
-        public string Key { set; get; }
-        public string Value { set; get; }
-    }
+    //class Content
+    //{
+    //    public string Comment { set; get; }
+    //    public string Key { set; get; }
+    //    public string Value { set; get; }
+    //}
 
-    class Section
-    {
-        public string Comment { set; get; }
-        public List<Content> Content { set; get; }
+    //class Section
+    //{
+    //    public string Comment { set; get; }
+    //    public List<Content> Content { set; get; }
 
-    }
+    //}
 
     public class ListDictonary<TKey, TValue> : Dictionary<TKey, TValue>
     {
