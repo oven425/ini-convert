@@ -289,9 +289,58 @@ namespace ConsoleApp_IniT
     {
         static void Main(string[] args)
         {
-            Regex regex_annotation = new Regex(";(?<word>)");
-            var regex_match = regex_annotation.Match(";aaaacccc");
-            File.ReadAllText("setting.ini");
+            Regex regex_annotation = new Regex(@"^;(?<annotation>.+)?$", RegexOptions.Compiled);
+            //var match = regex_annotation.Match(";;aaaacccc");
+            //var annotation = match.Groups["annotation"].Value;
+            
+            Regex regex_section = new Regex(@"^(\[)(?<section>.+)?(\])$", RegexOptions.Compiled);
+            //match = regex_section.Match("[[Setting]]");
+            //var section = match.Groups["section"].Value;
+
+
+            Regex regex_keyvalue = new Regex(@"^(?<key>.+)(=?)(?<value>.+)$", RegexOptions.Compiled);
+            //match = regex_keyvalue.Match("a=b");
+            //var key = match.Groups["key"].Value;
+            //var value = match.Groups["value"].Value;
+
+
+            StringReader sr = new StringReader(File.ReadAllText("setting.ini"));
+            List<Section> m_Sections = new List<Section>();
+            Section section = null;
+            while (true)
+            {
+                var line = sr.ReadLine();
+                if(line == null)
+                {
+                    break;
+                }
+                var match_section = regex_section.Match(line);
+                if(match_section.Success == true)
+                {
+                    if (section!=null)
+                    {
+                        m_Sections.Add(section);
+                        section = null;
+                    }
+                    section = new Section();
+                    section.Name = match_section.Groups["section"].Value;
+                }
+                else if(section != null)
+                {
+                    var match_keyvalue = regex_keyvalue.Match(line);
+                    if (match_keyvalue.Success == true)
+                    {
+                        KeyValue kv = new KeyValue();
+                        kv.Key = match_keyvalue.Groups["key"].Value;
+                        kv.Value = match_keyvalue.Groups["value"].Value;
+                        section.KeyValues[kv.Key] = kv;
+                    }
+                }
+                
+            }
+                
+
+
             IniModelBuilder<Setting> model = new IniModelBuilder<Setting>();
             model.useSetting(x =>
                 {
