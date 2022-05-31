@@ -12,7 +12,8 @@ namespace ConsoleApp_IniT
 {
     public interface IniString
     {
-        string WriteToString(object obj);
+        string Serialize(object obj);
+        object Deserialize(string data);
     }
 
     public class IniModelSetting
@@ -108,7 +109,7 @@ namespace ConsoleApp_IniT
             return null;
         }
 
-        public string WriteToString(object obj)
+        public string Serialize(object obj)
         {
             StringBuilder strb = new StringBuilder();
             IniModelSetting<T> setionsetting = new IniModelSetting<T>();
@@ -143,7 +144,7 @@ namespace ConsoleApp_IniT
                     var oo = item.Value.GetValue(obj, null);
                     if (this.PropertyBuilds.ContainsKey(item.Key) == true)
                     {
-                        var itemstr = this.PropertyBuilds[item.Key].WriteToString(oo);
+                        var itemstr = this.PropertyBuilds[item.Key].Serialize(oo);
                         strb.AppendLine(itemstr);
                     }
                     else
@@ -156,11 +157,16 @@ namespace ConsoleApp_IniT
             foreach(var model in this.m_Setions)
             {
                 var oo = this.m_Items[model.Key].GetValue(obj, null);
-                var itemstr = model.Value.WriteToString(oo);
+                var itemstr = model.Value.Serialize(oo);
                 strb.AppendLine(itemstr);
             }
 
             return strb.ToString();
+        }
+
+        public object Deserialize(string data)
+        {
+            throw new NotImplementedException();
         }
     }
 
@@ -212,7 +218,7 @@ namespace ConsoleApp_IniT
             return this;
         }
 
-        public string WriteToString(object obj)
+        public string Serialize(object obj)
         {
             if(this.Ignore == true)
             {
@@ -225,6 +231,11 @@ namespace ConsoleApp_IniT
             }
             strb.Append($"{this.Name}={obj}");
             return strb.ToString();
+        }
+
+        public object Deserialize(string data)
+        {
+            throw new NotImplementedException();
         }
 
         protected Func<object, object> m_ConvertTo;
@@ -280,9 +291,18 @@ namespace ConsoleApp_IniT
 
     public class KeyValue
     {
-        public string Annotation { set; get; }
         public string Key { set; get; }
         public string Value { set; get; }
+        public override string ToString()
+        {
+            return $"{Key}={Value}";
+        }
+
+        public T GetValue<T>()
+        {
+
+            return default(T);
+        }
     }
 
     class Program
@@ -298,8 +318,9 @@ namespace ConsoleApp_IniT
             //var section = match.Groups["section"].Value;
 
 
-            Regex regex_keyvalue = new Regex(@"^(?<key>.+)(=?)(?<value>.+)$", RegexOptions.Compiled);
-            //match = regex_keyvalue.Match("a=b");
+            //Regex regex_keyvalue = new Regex(@"^(?<key>.+)(=?)(?<value>.+)$", RegexOptions.Compiled);
+            //Regex regex_keyvalue = new Regex(@"^(?<key>.+)(?=?)$", RegexOptions.Compiled);
+            //var match = regex_keyvalue.Match("a==");
             //var key = match.Groups["key"].Value;
             //var value = match.Groups["value"].Value;
 
@@ -327,16 +348,21 @@ namespace ConsoleApp_IniT
                 }
                 else if(section != null)
                 {
-                    var match_keyvalue = regex_keyvalue.Match(line);
-                    if (match_keyvalue.Success == true)
+                    var match_annotation = regex_annotation.Match(line);
+                    if(match_annotation.Success == false)
                     {
-                        KeyValue kv = new KeyValue();
-                        kv.Key = match_keyvalue.Groups["key"].Value;
-                        kv.Value = match_keyvalue.Groups["value"].Value;
-                        section.KeyValues[kv.Key] = kv;
+                        int idx = line.IndexOf("=");
+                        if(idx >=0)
+                        {
+                            KeyValue kv = new KeyValue();
+                            kv.Key = line.Substring(0, idx);
+                            kv.Value = line.Remove(0, idx+1);
+                            section.KeyValues[kv.Key] = kv;
+                        }
+
                     }
+                    
                 }
-                
             }
                 
 
@@ -361,33 +387,33 @@ namespace ConsoleApp_IniT
             model.Section(x => x.FTP).Property(x => x.Port).HasAnnotation("FTP_PORT");
             model.Section(x => x.FTP).Property(x => x.Account).HasIgnore();
             model.Section(x => x.FTP).Property(x => x.Password).HasIgnore();
-            //foreach (var pp in typeof(Setting).GetProperties())
-            //{
-            //    model.Property(x => x.Port).HasConvert(x => x.ToString(), x => int.Parse(x));
-            //    var pb = model.Property(pp.Name);
-            //    pb.HasConvert(x => x.ToString(), x => int.Parse(x.ToString()));
-            //    var attrs = pp.GetCustomAttributes(true);
-            //    foreach (var attr in attrs)
-            //    {
-            //        if (attr is IniIgnore)
-            //        {
-            //            pb.HasIgnore();
-            //        }
-            //        else if (attr is IniAnnotation)
-            //        {
-            //            pb.HasAnnotation((attr as IniAnnotation)?.Annotation);
-            //        }
-            //        else if (attr is IniSection)
-            //        {
-            //            pb.HasPropertyName((attr as IniSection)?.Name);
-            //        }
-            //        else if (attr is IniArray)
-            //        {
-            //            var arry = attr as IniArray;
-            //            pb.HasArray(arry.Name, arry.BaseIndex);
-            //        }
-            //    }
-            //}
+            foreach (var pp in typeof(Setting).GetProperties())
+            {
+                model.Property(x => x.Port).HasConvert(x => x.ToString(), x => int.Parse(x));
+                var pb = model.Property(pp.Name);
+                pb.HasConvert(x => x.ToString(), x => int.Parse(x.ToString()));
+                var attrs = pp.GetCustomAttributes(true);
+                foreach (var attr in attrs)
+                {
+                    if (attr is IniIgnore)
+                    {
+                        pb.HasIgnore();
+                    }
+                    else if (attr is IniAnnotation)
+                    {
+                        pb.HasAnnotation((attr as IniAnnotation)?.Annotation);
+                    }
+                    else if (attr is IniSection)
+                    {
+                        //model.Section((attr as IniSection)?.Name);
+                    }
+                    else if (attr is IniArray)
+                    {
+                        var arry = attr as IniArray;
+                        pb.HasArray(arry.Name, arry.BaseIndex);
+                    }
+                }
+            }
 
 
 
@@ -404,7 +430,7 @@ namespace ConsoleApp_IniT
 };
             setting.FTP = new RemoteSetting() { IP = "192.168.1.1", Port = 8088, Account = "amind", Password = "admin1" };
             var pps = model.PropertyBuilds.Where(x => x.Value.Ignore == false);
-            var inistr = model.WriteToString(setting);
+            var inistr = model.Serialize(setting);
             File.WriteAllText("setting.ini", inistr);
             StringBuilder strb = new StringBuilder();
             foreach (var pp in pps)
