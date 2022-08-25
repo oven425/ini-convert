@@ -7,18 +7,27 @@ using System.Text;
 using System.IO;
 using System.Xml.Serialization;
 using System.Xml;
+using System.ComponentModel;
 
 namespace QSoft.Ini
 {
-    
+    [DisplayName("IniConvert")]
+    public class IniConvertAttribute: Attribute
+    {
+        public IniConvertAttribute(Type convert)
+        {
+
+        }
+    }
+
+    [DisplayName("IniSection")]
     [AttributeUsage(AttributeTargets.Class| AttributeTargets.Property, Inherited = false)]
-    public class IniSection : Attribute
+    public class IniSectionAttribute : Attribute
     {
         [Obsolete("Please use IniConvert")]
         public string DefaultSection { set; get; }
         public string Name { set; get; }
     }
-
 
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
     public class IniSectionKey : Attribute
@@ -30,8 +39,9 @@ namespace QSoft.Ini
         public bool Ignore { set; get; }
     }
 
+    [DisplayName("IniIgnore")]
     [AttributeUsage(AttributeTargets.Property, Inherited = false)]
-    public class IniIgnore:Attribute
+    public class IniIgnoreAttribute : Attribute
     {
         public bool IsVisible { set; get; }
     }
@@ -48,20 +58,6 @@ namespace QSoft.Ini
     {
         public string Annotation { set; get; }
     }
-
-    //class Content
-    //{
-    //    public string Comment { set; get; }
-    //    public string Key { set; get; }
-    //    public string Value { set; get; }
-    //}
-
-    //class Section
-    //{
-    //    public string Comment { set; get; }
-    //    public List<Content> Content { set; get; }
-
-    //}
 
     public class ListDictonary<TKey, TValue> : Dictionary<TKey, TValue>
     {
@@ -112,16 +108,22 @@ namespace QSoft.Ini
 
     }
 
-    interface IniString
+    //interface IniString
+    //{
+    //    string WriteToString();
+    //}
+
+    public abstract class IniConvert<T>
     {
-        string WriteToString();
+        public abstract string ConvertTo(T obj);
+        public abstract T ConvertTo(string data);
     }
 
     public static class IniConvert
     {
         static string GetSectionName(this Type type)
         {
-            var section = type.GetCustomAttributes(true).FirstOrDefault(x => x is IniSection) as IniSection;
+            var section = type.GetCustomAttributes(true).FirstOrDefault(x => x is IniSectionAttribute) as IniSectionAttribute;
             return section?.Name ?? type.Name;
         }
 
@@ -194,7 +196,7 @@ namespace QSoft.Ini
             }
             var pps = obj.GetType().GetProperties()
                 .Select(x => new { attrs = x.GetCustomAttributes(true), property = x, typecode = Type.GetTypeCode(x.PropertyType) })
-                .Where(x => x.property.CanRead == true && x.attrs.Any(y => y is IniIgnore) == false);
+                .Where(x => x.property.CanRead == true && x.attrs.Any(y => y is IniIgnoreAttribute) == false);
             foreach (var pp in pps)
             {
                 switch (pp.typecode)
@@ -241,7 +243,7 @@ namespace QSoft.Ini
                                 var subobj = pp.property.GetValue(obj, null);
                                 if (subobj != null)
                                 {
-                                    var subobj_section = pp.attrs.FirstOrDefault(x => x is IniSection) as IniSection;
+                                    var subobj_section = pp.attrs.FirstOrDefault(x => x is IniSectionAttribute) as IniSectionAttribute;
                                     if (subobj_section != null)
                                     {
                                         string sub_name = pp.property.Name;
@@ -291,7 +293,7 @@ namespace QSoft.Ini
         {
             var dics = Parse(ini);
             var type = typeof(T);
-            var oi = type.GetCustomAttributes(true).FirstOrDefault(x => x == typeof(IniSection));
+            var oi = type.GetCustomAttributes(true).FirstOrDefault(x => x == typeof(IniSectionAttribute));
             var section_name = type.GetSectionName();
             if (dics.ContainsKey(section_name) == true)
             {
@@ -320,7 +322,7 @@ namespace QSoft.Ini
         {
             var pps = obj.GetType().GetProperties().Where(x => x.CanWrite == true)
                 .Select(x => new { x, property = x.PropertyType, attrs = x.GetCustomAttributes(true), typecode = Type.GetTypeCode(x.PropertyType) });
-            pps = pps.Where(x => x.attrs.Any(y => y.GetType() == typeof(IniIgnore)) == false);
+            pps = pps.Where(x => x.attrs.Any(y => y.GetType() == typeof(IniIgnoreAttribute)) == false);
 
             foreach (var pp in pps)
             {
@@ -385,7 +387,7 @@ namespace QSoft.Ini
                             }
                             else
                             {
-                                var subobj_section = pp.attrs.FirstOrDefault(x => x is IniSection) as IniSection;
+                                var subobj_section = pp.attrs.FirstOrDefault(x => x is IniSectionAttribute) as IniSectionAttribute;
                                 
                                 if (subobj_section != null)
                                 {
@@ -836,7 +838,7 @@ namespace QSoft.Ini
                 return;
             }
 
-            IniSection defaultsection = type.GetCustomAttributes(typeof(IniSection), false).FirstOrDefault() as IniSection;
+            IniSectionAttribute defaultsection = type.GetCustomAttributes(typeof(IniSectionAttribute), false).FirstOrDefault() as IniSectionAttribute;
 
 
             var pps = type.GetProperties().Where(x => x.CanWrite && x.CanRead);
@@ -850,7 +852,7 @@ namespace QSoft.Ini
                     section = defaultsection.DefaultSection;
                 }
                 string key = pp.Name;
-                bool ignore = attrs.Any(x => x is IniIgnore);
+                bool ignore = attrs.Any(x => x is IniIgnoreAttribute);
                 if (attribe != null)
                 {
                     if (string.IsNullOrEmpty(attribe.Section) == false && attribe.Section.Trim().Length > 0)
@@ -879,7 +881,7 @@ namespace QSoft.Ini
             {
                 return;
             }
-            IniSection defaultsection = type.GetCustomAttributes(typeof(IniSection), false).FirstOrDefault() as IniSection;
+            var defaultsection = type.GetCustomAttributes(typeof(IniSectionAttribute), false).FirstOrDefault() as IniSectionAttribute;
 
             var pps = type.GetProperties().Where(x => x.CanWrite && x.CanRead);
             foreach (PropertyInfo pp in pps)
@@ -892,7 +894,7 @@ namespace QSoft.Ini
                     section = defaultsection.DefaultSection;
                 }
                 string key = pp.Name;
-                bool ignore = attrs.Any(x => x is IniIgnore);
+                bool ignore = attrs.Any(x => x is IniIgnoreAttribute);
                 if (attribe != null)
                 {
                     if (string.IsNullOrEmpty(attribe.Section) == false && attribe.Section.Trim().Length > 0)

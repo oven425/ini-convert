@@ -395,7 +395,7 @@ namespace ConsoleApp_IniT
                 var attrs = pp.GetCustomAttributes(true);
                 foreach (var attr in attrs)
                 {
-                    if (attr is IniIgnore)
+                    if (attr is IniIgnoreAttribute)
                     {
                         pb.HasIgnore();
                     }
@@ -403,7 +403,7 @@ namespace ConsoleApp_IniT
                     {
                         pb.HasAnnotation((attr as IniAnnotation)?.Annotation);
                     }
-                    else if (attr is IniSection)
+                    else if (attr is IniSectionAttribute)
                     {
                         //model.Section((attr as IniSection)?.Name);
                     }
