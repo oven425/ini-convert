@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Text;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 
 //https://www.cnblogs.com/wanghun315/p/17236982.html
@@ -14,6 +15,7 @@ namespace QSoft.Ini
     {
         public void Execute(GeneratorExecutionContext context)
         {
+            return;
             AugmentSyntaxReceiver syntaxReceiver = (AugmentSyntaxReceiver)context.SyntaxReceiver;
 
             // 通过语法接收器获得class类
@@ -51,7 +53,7 @@ namespace {syntaxReceiver.SpaceToAugment.Name.GetText()}
 #if DEBUG
             if (!Debugger.IsAttached)
             {
-                Debugger.Launch();
+                //Debugger.Launch();
             }
 #endif
 
@@ -62,10 +64,22 @@ namespace {syntaxReceiver.SpaceToAugment.Name.GetText()}
 
     public class CsvSyntaxReceiver : ISyntaxReceiver
     {
+        public ClassDeclarationSyntax ClassToAugment { get; private set; }
         public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
         {
             System.Diagnostics.Trace.WriteLine($"{syntaxNode.GetType().Name}");
-            var cds = syntaxNode as ClassDeclarationSyntax;
+            if (syntaxNode is ClassDeclarationSyntax cds)
+            {
+                var s1s = cds.AttributeLists.SelectMany(x => x.Attributes);
+                
+                foreach (var oo in cds.AttributeLists)
+                {
+                    //syntaxNode.get
+                    var ss = oo.SyntaxTree;
+                }
+
+
+            }
         }
     }
 
