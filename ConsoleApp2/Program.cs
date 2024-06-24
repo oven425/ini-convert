@@ -8,7 +8,7 @@ namespace ConsoleApp2
         {
             HelloFrom("Generated Code");
             People pp = new People();
-            var aa = pp.GetInitString();
+            //var aa = pp.GetInitString();
             Console.ReadLine();
 
            
@@ -27,37 +27,23 @@ namespace ConsoleApp2
     }
 
     [Description("AA")]
-    [CSVData]
+    [IniSection]
     public partial class People 
     {
         public string Name { set; get; }
         public int Age { set; get; }
     }
 
-    [System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = false)]
-    public class CSVDataAttribute:Attribute
+    [System.AttributeUsage(System.AttributeTargets.Class)]
+    public class IniSectionAttribute:Attribute
     {
         //public string Name {  get; set; }
     }
 
-    [System.AttributeUsage(System.AttributeTargets.Property, AllowMultiple = false)]
-    public class CsvIgnoreAttribute : Attribute
+    [System.AttributeUsage(System.AttributeTargets.Property)]
+    public class IniIgnoreAttribute : Attribute
     {
 
     }
 
-    [EnumExtensions(ExtensionClassName = "DirectionExtensions")]
-    public enum Direction
-    {
-        Left,
-        Right,
-        Up,
-        Down,
-    }
-
-    [System.AttributeUsage(System.AttributeTargets.Enum)]
-    public class EnumExtensionsAttribute : System.Attribute
-    {
-        public string ExtensionClassName { get; set; } // 👈 New property
-    }
 }

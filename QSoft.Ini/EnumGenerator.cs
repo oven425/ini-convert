@@ -53,7 +53,7 @@ namespace QSoft.Ini
             {
                 var a = cc.AttributeLists.SelectMany(x => x.Attributes)
                     .Select(x => x.Name.ToString());
-                csvdd = a.Any(x=>x=="CSVData");
+                csvdd = a.Any(x=>x=="IniSection");
 
 
             }
@@ -129,7 +129,7 @@ namespace QSoft.Ini
                 sb.AppendLine("\t\t{");
 
                 sb.AppendLine("\t\t\tvar sb = new System.Text.StringBuilder();");
-
+                sb.AppendLine($"\t\t\tsb.AppendLine($\"[{classstr}]\");");
                 ImmutableArray<ISymbol> enumMembers = enumSymbol.GetMembers();
                 var members = new List<string>(enumMembers.Length);
 
