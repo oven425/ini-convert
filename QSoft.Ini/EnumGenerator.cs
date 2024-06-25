@@ -119,7 +119,8 @@ namespace QSoft.Ini
                     continue;
                 }
                 var classstr = enumSymbol.Name;
-
+                var sss = @"
+";
                 var sb = new StringBuilder();
                 sb.AppendLine($"namespace {namespacestr}");
                 sb.AppendLine("{");

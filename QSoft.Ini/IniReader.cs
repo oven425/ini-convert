@@ -4,7 +4,7 @@ using System.Text;
 
 namespace QSoft.Ini
 {
-    internal class IniReader
-    {
-    }
+   
+
+    
 }
