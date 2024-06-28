@@ -10,8 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\QSoft.Ini\QSoft.Ini.csproj" OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\QSoft.Ini\QSoft.Ini.csproj" ReferenceOutputAssembly="false">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </ProjectReference>
   </ItemGroup>
 
 </Project>

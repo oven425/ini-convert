@@ -19,7 +19,7 @@ namespace QSoft.Ini
         {
             //context.RegisterPostInitializationOutput(ctx => ctx.AddSource(
             //    "EnumExtensionsAttribute.g.cs", SourceText.From(SourceGenerationHelper.Attribute, Encoding.UTF8)));
-
+            //System.Diagnostics.Debugger.Launch();
             IncrementalValuesProvider<EnumDeclarationSyntax> enumDeclarations = context.SyntaxProvider
                 .CreateSyntaxProvider(
                     predicate: static (s, _) => IsSyntaxTargetForGeneration(s),
