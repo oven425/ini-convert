@@ -7,16 +7,24 @@ using System.Collections.Immutable;
 using System.Text;
 using System.Threading;
 using System.Xml.Linq;
+using System.Diagnostics;
 
 namespace QSoft.Ini
 {
     [Generator]
     public class EnumGenerator : IIncrementalGenerator
     {
+
         private const string EnumExtensionsAttribute = "NetEscapades.EnumGenerators.EnumExtensionsAttribute";
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
+//#if DEBUG
+//            if (!Debugger.IsAttached)
+//            {
+//                Debugger.Launch();
+//            }
+//#endif
             //context.RegisterPostInitializationOutput(ctx => ctx.AddSource(
             //    "EnumExtensionsAttribute.g.cs", SourceText.From(SourceGenerationHelper.Attribute, Encoding.UTF8)));
             //System.Diagnostics.Debugger.Launch();

@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Text;
 using System.Text.RegularExpressions;
-
+using QSoft.Ini;
 
 namespace ConsoleApp2
 {
@@ -9,56 +9,56 @@ namespace ConsoleApp2
     {
         static void Main(string[] args)
         {
-            //HelloFrom("Generated Code");
             People pp = new People();
-            //var aa = pp.GetInitString();
+            //HelloFrom("Generated Code");
+            var aa = pp.GetInitString();
             //(?<month>\d{1,2})
 
-//            var cotent = @"[Test]
-//IP=127.0.0.1
-//Port=88
-//Account=KK
-//Password=poiuu
-//";
-//            var regex_keyvalue = new Regex(@"^(?<key>\w+)=(?<value>.*)$");
-//            var bbb = regex_keyvalue.Match("IP=127.0.0.1");
-//            if (bbb.Success)
-//            {
-//                var key = bbb.Groups["key"].Value;
-//                var value = bbb.Groups["value"].Value;
-//            }
+            //            var cotent = @"[Test]
+            //IP=127.0.0.1
+            //Port=88
+            //Account=KK
+            //Password=poiuu
+            //";
+            //            var regex_keyvalue = new Regex(@"^(?<key>\w+)=(?<value>.*)$");
+            //            var bbb = regex_keyvalue.Match("IP=127.0.0.1");
+            //            if (bbb.Success)
+            //            {
+            //                var key = bbb.Groups["key"].Value;
+            //                var value = bbb.Groups["value"].Value;
+            //            }
 
-//            var regex_section = new Regex(@"^\[(?<section>.*)\]$");
-//            var bb = regex_section.Match("[1.2.3]");
-//            if(bb.Success)
-//            {
-//                var gg = bb.Groups["section"].Value;
-//            }
-//            var inir = new IniReader(new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(cotent))));
+            //            var regex_section = new Regex(@"^\[(?<section>.*)\]$");
+            //            var bb = regex_section.Match("[1.2.3]");
+            //            if(bb.Success)
+            //            {
+            //                var gg = bb.Groups["section"].Value;
+            //            }
+            //            var inir = new IniReader(new StreamReader(new MemoryStream(Encoding.UTF8.GetBytes(cotent))));
 
-//            while(inir.Read())
-//            {
-//                switch(inir.TokenType)
-//                {
-//                    case IniTokenType.Section:
-//                        {
-//                            System.Diagnostics.Trace.WriteLine($"[{inir.GetString()}]");
-//                        }
-//                        break;
-//                    case IniTokenType.PropertyName:
-//                        {
-//                            System.Diagnostics.Trace.Write($"{inir.GetString()}=");
-//                        }
-//                        break;
-//                    case IniTokenType.Value:
-//                        {
-//                            System.Diagnostics.Trace.Write($"{inir.GetString()}");
-//                            System.Diagnostics.Trace.WriteLine("");
-//                        }
-//                        break;
+            //            while(inir.Read())
+            //            {
+            //                switch(inir.TokenType)
+            //                {
+            //                    case IniTokenType.Section:
+            //                        {
+            //                            System.Diagnostics.Trace.WriteLine($"[{inir.GetString()}]");
+            //                        }
+            //                        break;
+            //                    case IniTokenType.PropertyName:
+            //                        {
+            //                            System.Diagnostics.Trace.Write($"{inir.GetString()}=");
+            //                        }
+            //                        break;
+            //                    case IniTokenType.Value:
+            //                        {
+            //                            System.Diagnostics.Trace.Write($"{inir.GetString()}");
+            //                            System.Diagnostics.Trace.WriteLine("");
+            //                        }
+            //                        break;
 
-//                }
-//            }
+            //                }
+            //            }
             Console.ReadLine();
 
            
@@ -80,7 +80,7 @@ namespace ConsoleApp2
         }
     }
 
-    
+    [IniSection]
     public partial class People 
     {
         public string Name { set; get; }
