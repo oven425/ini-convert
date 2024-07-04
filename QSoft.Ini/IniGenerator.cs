@@ -11,7 +11,7 @@ namespace QSoft.Ini
     [Generator]
     public class IniGenerator : IIncrementalGenerator
     {
-        const string m_Section = " QSoft.Ini.IniSectionAttribute";
+        const string m_IniSectionFullName = "QSoft.Ini.IniSectionAttribute";
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
 #if DEBUG
@@ -27,12 +27,29 @@ namespace QSoft.Ini
                }, 
                static (ctx, _) =>
                {
-                   var cls = ctx.Node as ClassDeclarationSyntax;
-                   var a = cls.AttributeLists.SelectMany(x => x.Attributes)
-                    .Select(x => x.Name);
+                   var clssyntax = ctx.Node as ClassDeclarationSyntax;
+                   if (clssyntax == null) return null;
+                   foreach (AttributeListSyntax attributeListSyntax in clssyntax.AttributeLists)
+                   {
+                       foreach (AttributeSyntax attributeSyntax in attributeListSyntax.Attributes)
+                       {
+                           if (ctx.SemanticModel.GetSymbolInfo(attributeSyntax).Symbol is not IMethodSymbol attributeSymbol)
+                           {
+                               // weird, we couldn't get the symbol, ignore it
+                               continue;
+                           }
+                           INamedTypeSymbol attributeContainingTypeSymbol = attributeSymbol.ContainingType;
+                           string fullName = attributeContainingTypeSymbol.ToDisplayString();
 
-                   if (a.Any(x => x.ToString() == "IniSection"))
-                       return cls;
+                           // Is the attribute the [EnumExtensions] attribute?
+                           if (fullName == m_IniSectionFullName)
+                           {
+                               // return the enum
+                               return clssyntax;
+                           }
+
+                       }
+                   }
                    return null;
                }).Where(static m => m != null);
 
@@ -42,9 +59,27 @@ namespace QSoft.Ini
             context.RegisterSourceOutput(compilationAndClass,
                 static (spc, source) =>
                 {
-                    foreach(var cls in source.Item2)
+                    var classstntaxs = source.Item2.Distinct();
+                    foreach(var cls in classstntaxs)
                     {
+                        var clasllname = cls.Identifier.ToString();
+                        //var pps = cls.Members.Select(X => X.SyntaxTree.);
+                        var aa = source.Item1.GetSemanticModel(cls.SyntaxTree).GetSymbolInfo(cls).Symbol;
+                        var code = @"
+using System.Text;
 
+namespace QSoft.Ini
+{
+    internal partial class "+$"{clasllname}"+@"
+    {
+        internal void Serialize(IniWriter writer)
+        {
+            "+@"
+        }
+    }
+
+}";
+                        spc.AddSource($"{clasllname}.g.cs", code);
                     }
                 });
         }

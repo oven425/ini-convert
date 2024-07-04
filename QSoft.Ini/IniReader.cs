@@ -16,19 +16,31 @@ namespace QSoft.Ini
 
     public class IniWriter(Stream stream)
     {
+        public IniTokenType TokenType { get; private set; }
         StreamWriter m_SW = new StreamWriter(stream);
         public void WriteSection(string data)
         {
-            m_SW.WriteLine($"[{data}]"); 
+            if(this.TokenType == IniTokenType.PropertyName)
+            {
+                m_SW.WriteLine();
+            }
+            m_SW.WriteLine($"[{data}]");
+            TokenType = IniTokenType.Section;
         }
         public void WritePorpertyName(string data)
         {
-            m_SW.WriteLine($"data=");
+            if (this.TokenType == IniTokenType.PropertyName)
+            {
+                m_SW.WriteLine();
+            }
+            m_SW.WriteLine($"{data}=");
+            TokenType = IniTokenType.PropertyName;
         }
 
         public void WriteValue(string data)
         {
             m_SW.WriteLine($"{data}");
+            TokenType = IniTokenType.Value;
         }
     }
 

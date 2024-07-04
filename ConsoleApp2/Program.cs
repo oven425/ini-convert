@@ -63,7 +63,7 @@ namespace ConsoleApp2
 
            
         }
-
+        
         static partial void HelloFrom(string name);
     }
 
