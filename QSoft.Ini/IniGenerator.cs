@@ -62,24 +62,49 @@ namespace QSoft.Ini
                     var classstntaxs = source.Item2.Distinct();
                     foreach(var cls in classstntaxs)
                     {
-                        var clasllname = cls.Identifier.ToString();
-                        //var pps = cls.Members.Select(X => X.SyntaxTree.);
-                        var aa = source.Item1.GetSemanticModel(cls.SyntaxTree).GetSymbolInfo(cls).Symbol;
-                        var code = @"
+                        SemanticModel semanticModel = source.Item1.GetSemanticModel(cls.SyntaxTree);
+                        if (semanticModel.GetDeclaredSymbol(cls) is not INamedTypeSymbol symbol)
+                        {
+                            // something went wrong
+                            continue;
+                        }
+                        var classname = cls.Identifier.ToString();
+                        var pps = symbol.GetMembers()
+                        .Where(x=>x is IPropertySymbol)
+                        .Select(x=>(IPropertySymbol)x)
+                        .Where(x=>!x.IsReadOnly);
+                        foreach(var pp in pps)
+                        {
+                            var tt = pp.Type;
+                            var aa = $"{pp.Name}={pp.Name}";
+                            //writer.WriteString
+                        }
+
+                        var code1 = Enumerable.Range(1, 4).Select(x => $"var bb{x}={x};").Aggregate("", (x, y) => $"{x}{y}\r\n");
+
+                        var code = @$"
 using System.Text;
 
 namespace QSoft.Ini
-{
-    internal partial class "+$"{clasllname}"+@"
-    {
+{{
+    internal partial class {classname}
+    {{
         internal void Serialize(IniWriter writer)
-        {
-            "+@"
-        }
-    }
+        {{
+        "
+        +
+@$"         {code1}"
+            
 
-}";
-                        spc.AddSource($"{clasllname}.g.cs", code);
+
+        +
+        
+        
+@$"     }}
+    }}
+
+}}";
+                        spc.AddSource($"{classname}.g.cs", code);
                     }
                 });
         }

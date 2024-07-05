@@ -37,10 +37,15 @@ namespace QSoft.Ini
             TokenType = IniTokenType.PropertyName;
         }
 
-        public void WriteValue(string data)
+        public void WriteString(string data)
         {
             m_SW.WriteLine($"{data}");
             TokenType = IniTokenType.Value;
+        }
+
+        public void WriteInt32(int data)
+        {
+            this.WriteString($"{data}");
         }
     }
 
