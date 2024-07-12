@@ -139,8 +139,8 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Ini-Serializer\QSoft.Ini.csproj">
-      <Project>{7159ceaa-5bd9-4981-9acf-643cba88268c}</Project>
+    <ProjectReference Include="..\QSoft.Ini\QSoft.Ini.csproj">
+      <Project>{6d5aac67-bf0e-4c24-a3be-403f3ca983ed}</Project>
       <Name>QSoft.Ini</Name>
     </ProjectReference>
   </ItemGroup>

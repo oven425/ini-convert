@@ -70,9 +70,9 @@ namespace QSoft.Ini
                         }
                         var classname = cls.Identifier.ToString();
                         var pps = symbol.GetMembers()
-                        .Where(x=>x is IPropertySymbol)
-                        .Select(x=>(IPropertySymbol)x)
-                        .Where(x=>!x.IsReadOnly);
+                            .Where(x=>x is IPropertySymbol)
+                            .Select(x=>(IPropertySymbol)x)
+                            .Where(x=>!x.IsReadOnly);
                         foreach(var pp in pps)
                         {
                             var tt = pp.Type;

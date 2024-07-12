@@ -1,5 +1,4 @@
-﻿using QSoft.Ini;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -7,6 +6,7 @@ using System.Reflection;
 using System.Linq.Expressions;
 using System.Linq;
 using System.Text.RegularExpressions;
+
 
 namespace ConsoleApp_IniT
 {
