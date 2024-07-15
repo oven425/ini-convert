@@ -17,7 +17,7 @@ namespace QSoft.Ini
 #if DEBUG
             if (!Debugger.IsAttached)
             {
-                Debugger.Launch();
+                //Debugger.Launch();
             }
 #endif
             var classfegs = context.SyntaxProvider

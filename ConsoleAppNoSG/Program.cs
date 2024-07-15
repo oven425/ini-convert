@@ -3,7 +3,6 @@ using QSoft.Ini;
 Console.WriteLine("Hello, World!");
 
 
-var inistr = IniConvert.SerializeObject(new Address());
 
 Console.ReadLine();
 
